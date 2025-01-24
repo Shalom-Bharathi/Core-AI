@@ -288,6 +288,11 @@
       if (workoutData) {
         populateWorkoutDetails(workoutData);
       }
+
+      document.getElementById('startWorkoutBtn').addEventListener('click', () => {
+        // The workout data is already in localStorage
+        window.location.href = '../workout-sessions/';
+      });
     });
   </script>
 </body>

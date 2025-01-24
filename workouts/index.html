@@ -229,42 +229,12 @@
 
       try {
         const workout = await generateWorkout(type, length);
-        hideLoadingModal();
-        
-        // Create and show workout result modal
-        const workoutModal = document.createElement('div');
-        workoutModal.className = 'modal';
-        workoutModal.innerHTML = `
-          <div class="modal-content">
-            <h2>Your Generated Workout</h2>
-            <div class="workout-details">
-              <pre>${workout}</pre>
-            </div>
-            <div class="modal-actions">
-              <button class="button-secondary" onclick="this.closest('.modal').remove()">Close</button>
-              <button class="button-primary" onclick="saveWorkout('${type}', '${length}', \`${workout}\`)">
-                Save Workout
-              </button>
-            </div>
-          </div>
-        `;
-        document.body.appendChild(workoutModal);
+        localStorage.setItem('currentWorkout', JSON.stringify(workout));
+        window.location.href = './workout-details/';
       } catch (error) {
+        console.error('Error generating workout:', error);
         hideLoadingModal();
-        
-        // Show error modal
-        const errorModal = document.createElement('div');
-        errorModal.className = 'modal';
-        errorModal.innerHTML = `
-          <div class="modal-content">
-            <h2>Error</h2>
-            <p>${error.message}</p>
-            <div class="modal-actions">
-              <button class="button-primary" onclick="this.closest('.modal').remove()">OK</button>
-            </div>
-          </div>
-        `;
-        document.body.appendChild(errorModal);
+        alert('Error generating workout: ' + error.message);
       }
     }
 

@@ -50,52 +50,55 @@ export async function generateWorkout(type, length) {
       "targetMuscleGroups": ["muscle1", "muscle2"],
       "equipment": ["equipment1", "equipment2"],
       "estimatedCalories": "XXX calories",
-      "exercises": [
-        {
-          "name": "Exercise Name",
-          "duration": 60,
-          "rest": 15,
-          "instructions": "Detailed step by step instructions for performing the exercise",
-          "targetMuscles": ["muscle1", "muscle2"],
-          "equipment": "required equipment",
-          "sets": 3,
-          "reps": "12-15",
-          "restBetweenSets": 30
-        }
-      ],
       "sections": {
         "warmUp": {
-          "duration": "X minutes",
+          "duration": "5 minutes",
           "exercises": [
             {
-              "name": "Warm-up Exercise",
-              "duration": 60,
+              "name": "Exercise name",
+              "duration": 30,
+              "rest": 10,
+              "instructions": "Detailed instructions",
+              "targetMuscles": ["muscle1", "muscle2"]
+            },
+            {
+              "name": "Exercise name",
+              "duration": 30,
+              "rest": 10,
               "instructions": "Detailed instructions",
               "targetMuscles": ["muscle1", "muscle2"]
             }
           ]
         },
         "mainWorkout": {
-          "duration": "X minutes",
+          "duration": "${length - 10} minutes",
           "exercises": [
             {
-              "name": "Main Exercise",
+              "name": "Exercise name",
               "duration": 45,
+              "rest": 15,
               "sets": 3,
-              "reps": "12 per set",
-              "rest": 30,
+              "reps": "12-15",
               "instructions": "Detailed instructions",
               "targetMuscles": ["muscle1", "muscle2"],
-              "equipment": "required equipment"
+              "equipment": "equipment needed"
             }
+            // Generate 8-10 different exercises
           ]
         },
         "coolDown": {
-          "duration": "X minutes",
+          "duration": "5 minutes",
           "exercises": [
             {
-              "name": "Cool-down Exercise",
-              "duration": 60,
+              "name": "Exercise name",
+              "duration": 30,
+              "rest": 10,
+              "instructions": "Detailed instructions"
+            },
+            {
+              "name": "Exercise name",
+              "duration": 30,
+              "rest": 10,
               "instructions": "Detailed instructions"
             }
           ]
@@ -106,15 +109,13 @@ export async function generateWorkout(type, length) {
     }
 
     Make sure:
-    1. Each exercise has a specific duration in seconds
-    2. Rest periods are appropriate for the exercise type
-    3. Instructions are clear and detailed
-    4. The total duration of exercises + rest matches the requested workout length
-    5. Exercises are ordered in a logical sequence
-    6. Include both detailed view data (sections) and session view data (exercises)
-    7. For strength exercises, include sets, reps, and rest between sets
-    8. For cardio/HIIT exercises, focus on duration and intensity
-    `;
+    1. Include 8-10 different exercises in the main workout
+    2. Each exercise should be 30-45 seconds with 15-30 seconds rest
+    3. Alternate between different muscle groups
+    4. Include proper warm-up and cool-down exercises
+    5. Total time should match the requested duration
+    6. Instructions should be clear and detailed
+    7. Rest periods should be appropriate for the exercise type`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -148,28 +149,17 @@ export async function generateWorkout(type, length) {
     const data = await response.json();
     const workoutData = JSON.parse(data.choices[0].message.content);
 
-    // Process the workout data for session view
-    const processedExercises = [
-      ...workoutData.sections.warmUp.exercises.map(ex => ({
-        ...ex,
-        phase: 'Warm Up',
-        rest: 15 // Default rest for warm-up
-      })),
-      ...workoutData.sections.mainWorkout.exercises.map(ex => ({
-        ...ex,
-        phase: 'Main Workout'
-      })),
-      ...workoutData.sections.coolDown.exercises.map(ex => ({
-        ...ex,
-        phase: 'Cool Down',
-        rest: 10 // Default rest for cool-down
-      }))
-    ];
-
-    // Return both the full workout data and processed exercises
-    return {
+    // Store workout in Firebase
+    const workoutRef = await db.collection('workouts').add({
       ...workoutData,
-      exercises: processedExercises
+      userId: user.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Return workout data with ID
+    return {
+      id: workoutRef.id,
+      ...workoutData
     };
   } catch (error) {
     console.error('Error details:', error);
