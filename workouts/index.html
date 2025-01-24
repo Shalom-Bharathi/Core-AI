@@ -350,6 +350,7 @@
       
       hideWorkoutModal();
       showLoadingModal();
+      startLoadingSequence();
 
       try {
         await generateWorkout(type, length);
@@ -383,6 +384,47 @@
       document.getElementById('loadingModal').style.display = 'none';
     }
 
+    let currentLoadingStep = 0;
+    const loadingSteps = [
+      'Fetching user vitals...',
+      'Analyzing body composition...',
+      'Retrieving fitness history...',
+      'Generating personalized workout...'
+    ];
+
+    function startLoadingSequence() {
+      currentLoadingStep = 0;
+      updateLoadingStep();
+      
+      const interval = setInterval(() => {
+        currentLoadingStep++;
+        
+        if (currentLoadingStep >= loadingSteps.length) {
+          clearInterval(interval);
+          return;
+        }
+        
+        updateLoadingStep();
+      }, 1500);
+    }
+
+    function updateLoadingStep() {
+      document.getElementById('loadingStatus').textContent = loadingSteps[currentLoadingStep];
+      
+      // Update step indicators
+      document.querySelectorAll('.loading-step').forEach((step, index) => {
+        if (index < currentLoadingStep) {
+          step.classList.remove('active');
+          step.classList.add('completed');
+        } else if (index === currentLoadingStep) {
+          step.classList.add('active');
+          step.classList.remove('completed');
+        } else {
+          step.classList.remove('active', 'completed');
+        }
+      });
+    }
+
     // Add event listeners
     document.addEventListener('DOMContentLoaded', () => {
       // Check auth state
@@ -414,6 +456,7 @@
   <style>
     .loading-modal .modal-content {
       text-align: center;
+      max-width: 400px;
     }
 
     .loading-spinner {
@@ -435,6 +478,18 @@
       padding: 0.5rem;
       color: var(--muted);
       transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .loading-step::before {
+      content: "";
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      display: inline-block;
     }
 
     .loading-step.active {
@@ -442,8 +497,22 @@
       font-weight: 500;
     }
 
+    .loading-step.active::before {
+      border-color: var(--primary);
+      background-color: var(--primary-light);
+    }
+
     .loading-step.completed {
       color: var(--success);
+    }
+
+    .loading-step.completed::before {
+      border-color: var(--success);
+      background-color: var(--success);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white' width='16px' height='16px'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+      background-size: 0.75rem;
+      background-position: center;
+      background-repeat: no-repeat;
     }
 
     @keyframes spin {
