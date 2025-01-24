@@ -43,7 +43,28 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
   <div class="app">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <!-- ... same sidebar as other pages ... -->
+      <div class="sidebar-content">
+        <div class="logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span class="logo-text">CoreAI</span>
+        </div>
+        
+        <nav class="nav-links">
+          <a href="../../index.html" class="nav-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="../" class="nav-link active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span>Workouts</span>
+          </a>
+        </nav>
+      </div>
+
+      <button class="logout-button nav-link" id="logoutButton">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        <span>Logout</span>
+      </button>
     </aside>
 
     <!-- Main Content -->
@@ -52,37 +73,50 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
         <!-- Left Section -->
         <div class="workout-section">
           <header class="session-header">
-            <h1 id="workoutName" class="text-3xl font-bold text-primary">Loading workout...</h1>
-            <p id="workoutDescription" class="text-muted">Get ready to start your session</p>
-          </header>
-
-          <div class="exercise-display">
-            <div id="currentExercise" class="exercise-card">
-              <h2 class="exercise-name">Loading...</h2>
-              <p class="exercise-instructions">Preparing your workout...</p>
+            <div class="header-content">
+              <h1 id="workoutName">Loading workout...</h1>
+              <p id="workoutDescription" class="text-muted">Get ready to start your session</p>
             </div>
-
-            <div class="progress-container">
-              <div class="progress-bar" id="exerciseProgress"></div>
-            </div>
-
-            <div class="workout-stats">
-              <div class="stat">
+            <div class="workout-progress">
+              <div class="progress-stat">
                 <span class="stat-label">Exercise</span>
                 <span id="exerciseCount" class="stat-value">0/0</span>
               </div>
-              <div class="stat">
+              <div class="progress-stat">
                 <span class="stat-label">Phase</span>
-                <span id="currentPhase" class="stat-value">Work</span>
+                <span id="currentPhase" class="stat-value">Warm Up</span>
+              </div>
+            </div>
+          </header>
+
+          <div class="exercise-display">
+            <div class="timer-section">
+              <div class="timer-ring">
+                <svg class="progress-ring" width="200" height="200">
+                  <circle class="progress-ring-circle" stroke="var(--primary)" stroke-width="8" fill="transparent" r="90" cx="100" cy="100"/>
+                </svg>
+                <div class="timer-display">
+                  <span id="timeRemaining">00:00</span>
+                </div>
               </div>
             </div>
 
-            <div class="timer-display">
-              <span id="timeRemaining">00:00</span>
+            <div class="exercise-info">
+              <div id="currentExercise" class="exercise-card">
+                <h2 class="exercise-name">Loading...</h2>
+                <p class="exercise-instructions">Preparing your workout...</p>
+                <div class="exercise-meta">
+                  <span class="exercise-sets"></span>
+                  <span class="exercise-equipment"></span>
+                </div>
+              </div>
             </div>
 
             <div class="control-buttons">
-              <button id="pauseButton" class="button-circle">
+              <button id="previousButton" class="button-circle secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+              </button>
+              <button id="pauseButton" class="button-circle primary">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
               </button>
               <button id="skipButton" class="button-circle secondary">
@@ -93,13 +127,32 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
         </div>
 
         <!-- Right Section -->
-        <div class="ai-assistant-section">
-          <h2>AI Voice Assistant</h2>
-          <div class="ai-display">
-            <div class="ai-avatar">
-              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+        <div class="workout-sidebar">
+          <div class="upcoming-exercises">
+            <h3>Coming Up Next</h3>
+            <div id="upcomingExercises" class="exercise-list">
+              <!-- Upcoming exercises will be populated here -->
             </div>
-            <p class="ai-message">Your AI workout companion is ready to guide you</p>
+          </div>
+
+          <div class="workout-stats">
+            <h3>Workout Stats</h3>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <span class="stat-label">Time Left</span>
+                <span id="totalTimeLeft" class="stat-value">--:--</span>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                </div>
+                <span class="stat-label">Calories</span>
+                <span id="caloriesBurned" class="stat-value">0</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -110,16 +163,20 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
     .workout-session {
       padding: 0;
       background: var(--background);
-    }
-
-    .session-container {
-      display: grid;
-      grid-template-columns: 1fr 400px;
       height: 100vh;
       overflow: hidden;
     }
 
+    .session-container {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      height: 100vh;
+      gap: 1px;
+      background: var(--border);
+    }
+
     .workout-section {
+      background: var(--background);
       padding: 2rem;
       display: flex;
       flex-direction: column;
@@ -127,60 +184,18 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
     }
 
     .session-header {
-      text-align: center;
-    }
-
-    .exercise-display {
-      flex-grow: 1;
       display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 2rem;
-      max-width: 600px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .exercise-card {
-      background: var(--card);
-      padding: 2rem;
-      border-radius: 1rem;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-      text-align: center;
-    }
-
-    .exercise-name {
-      font-size: 2rem;
-      font-weight: bold;
-      margin-bottom: 1rem;
-      color: var(--primary);
-    }
-
-    .exercise-instructions {
-      color: var(--muted);
-      line-height: 1.6;
-    }
-
-    .progress-container {
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .progress-bar {
-      height: 100%;
-      background: var(--primary);
-      transition: width 0.1s linear;
-    }
-
-    .workout-stats {
-      display: flex;
-      justify-content: center;
+      justify-content: space-between;
+      align-items: flex-start;
       gap: 2rem;
     }
 
-    .stat {
+    .workout-progress {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .progress-stat {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -188,93 +203,178 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
     }
 
     .stat-label {
-      color: var(--muted);
       font-size: 0.875rem;
+      color: var(--muted);
     }
 
     .stat-value {
+      font-size: 1.25rem;
       font-weight: 600;
-      color: var(--foreground);
+      color: var(--text);
+    }
+
+    .exercise-display {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      padding: 2rem;
+      background: var(--card);
+      border-radius: 1rem;
+    }
+
+    .timer-section {
+      position: relative;
+      width: 200px;
+      height: 200px;
+    }
+
+    .timer-ring {
+      position: relative;
+    }
+
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
     }
 
     .timer-display {
-      font-size: 4rem;
-      font-weight: bold;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .exercise-info {
+      width: 100%;
       text-align: center;
+    }
+
+    .exercise-card {
+      padding: 2rem;
+      background: var(--background);
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+
+    .exercise-name {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .exercise-instructions {
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .exercise-meta {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
       color: var(--primary);
-      font-variant-numeric: tabular-nums;
+      font-weight: 500;
     }
 
     .control-buttons {
       display: flex;
-      justify-content: center;
       gap: 1rem;
+      margin-top: auto;
     }
 
     .button-circle {
-      width: 64px;
-      height: 64px;
+      width: 3.5rem;
+      height: 3.5rem;
       border-radius: 50%;
-      background: var(--primary);
-      color: white;
-      border: none;
-      cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
     }
 
-    .button-circle:hover {
-      transform: scale(1.05);
-      background: var(--primary-hover);
+    .button-circle.primary {
+      background: var(--primary);
+      color: white;
     }
 
     .button-circle.secondary {
       background: var(--background);
-      color: var(--muted);
-      border: 2px solid var(--border);
+      color: var(--text);
+      border: 1px solid var(--border);
     }
 
-    .button-circle.secondary:hover {
-      background: var(--border);
-      color: var(--foreground);
+    .button-circle:hover {
+      transform: scale(1.05);
     }
 
-    .ai-assistant-section {
-      background: var(--primary);
-      color: white;
+    .workout-sidebar {
+      background: var(--background);
       padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      border-left: 1px solid var(--border);
+    }
+
+    .upcoming-exercises {
+      flex: 1;
+    }
+
+    .exercise-list {
+      margin-top: 1rem;
       display: flex;
       flex-direction: column;
       gap: 1rem;
     }
 
-    .ai-display {
-      flex-grow: 1;
+    .upcoming-exercise {
+      padding: 1rem;
+      background: var(--card);
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+    }
+
+    .upcoming-exercise.next {
+      border-color: var(--primary);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-card {
+      padding: 1rem;
+      background: var(--card);
+      border-radius: 0.75rem;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 1rem;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 1rem;
-      padding: 2rem;
+      gap: 0.5rem;
     }
 
-    .ai-avatar {
-      width: 80px;
-      height: 80px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+    .stat-icon {
+      color: var(--primary);
     }
 
-    .ai-message {
-      text-align: center;
-      opacity: 0.8;
+    @media (max-width: 1024px) {
+      .session-container {
+        grid-template-columns: 1fr;
+      }
+
+      .workout-sidebar {
+        display: none;
+      }
     }
   </style>
 

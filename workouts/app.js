@@ -13,15 +13,104 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
   });
 });
 
+// Standardized workout data structure
+const WORKOUT_REFERENCE = {
+  name: "Full Body HIIT Workout", // Example name
+  type: "hiit", // hiit, strength, cardio, flexibility
+  duration: "30 minutes",
+  difficulty: "intermediate", // beginner, intermediate, advanced
+  targetMuscleGroups: ["legs", "core", "arms", "shoulders"],
+  equipment: ["dumbbells", "yoga mat"],
+  estimatedCalories: "300 calories",
+  sections: {
+    warmUp: {
+      duration: "5 minutes",
+      exercises: [
+        {
+          name: "Dynamic Leg Swings",
+          duration: 30, // in seconds
+          rest: 15, // in seconds
+          instructions: "Stand holding a wall for balance. Swing right leg forward and back 10 times, then switch legs. Keep core engaged and maintain good posture.",
+          targetMuscles: ["hip flexors", "hamstrings"]
+        },
+        {
+          name: "Arm Circles",
+          duration: 30,
+          rest: 15,
+          instructions: "Stand with feet shoulder-width apart. Make large circular motions with both arms, 10 forward then 10 backward. Keep shoulders relaxed.",
+          targetMuscles: ["shoulders", "upper back"]
+        },
+        {
+          name: "Bodyweight Squats",
+          duration: 30,
+          rest: 15,
+          instructions: "Stand with feet hip-width apart. Lower into squat position keeping chest up and knees tracking over toes. Return to start.",
+          targetMuscles: ["quadriceps", "glutes"]
+        }
+      ]
+    },
+    mainWorkout: {
+      duration: "20 minutes",
+      exercises: [
+        {
+          name: "Dumbbell Goblet Squats",
+          duration: 40,
+          rest: 20,
+          sets: 3,
+          reps: "12-15",
+          instructions: "Hold dumbbell at chest. Feet shoulder-width apart. Lower into squat keeping chest up. Drive through heels to stand.",
+          targetMuscles: ["quadriceps", "glutes", "core"],
+          equipment: "dumbbell"
+        }
+        // ... 9 more exercises with similar structure
+      ]
+    },
+    coolDown: {
+      duration: "5 minutes",
+      exercises: [
+        {
+          name: "Standing Forward Fold",
+          duration: 30,
+          rest: 15,
+          instructions: "Stand with feet hip-width apart. Slowly fold forward, letting arms hang. Bend knees slightly if needed. Hold and breathe deeply.",
+          targetMuscles: ["hamstrings", "lower back"]
+        },
+        {
+          name: "Cat-Cow Stretch",
+          duration: 30,
+          rest: 15,
+          instructions: "On hands and knees, alternate between arching and rounding spine. Coordinate movement with breath.",
+          targetMuscles: ["spine", "core"]
+        },
+        {
+          name: "Child's Pose",
+          duration: 30,
+          rest: 15,
+          instructions: "Kneel on mat, sit back on heels. Extend arms forward and rest forehead on mat. Breathe deeply and relax.",
+          targetMuscles: ["back", "shoulders"]
+        }
+      ]
+    }
+  },
+  tips: [
+    "Stay hydrated throughout the workout",
+    "Focus on form over speed",
+    "Modify exercises as needed for your fitness level"
+  ],
+  precautions: [
+    "Stop if you feel sharp pain",
+    "Maintain proper breathing throughout",
+    "Take additional rest if needed"
+  ]
+};
+
 export async function generateWorkout(type, length) {
   try {
     const auth = getAuth();
     const db = getFirestore();
     const user = auth.currentUser;
 
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
+    if (!user) throw new Error('User not authenticated');
 
     const userDetailsRef = doc(db, 'body-details', user.uid);
     const userDetailsDoc = await getDoc(userDetailsRef);
@@ -40,87 +129,22 @@ export async function generateWorkout(type, length) {
     Body Type: ${bodyDetails.bodyType}
     Body Fat: ${bodyDetails.fatComposition}%
 
-    Format the response in JSON with the following structure:
-    {
-      "name": "Name of the workout",
-      "type": "${type}",
-      "duration": "${length} minutes",
-      "difficulty": "beginner/intermediate/advanced",
-      "targetMuscleGroups": ["muscle1", "muscle2"],
-      "equipment": ["equipment1", "equipment2"],
-      "estimatedCalories": "XXX calories",
-      "sections": {
-        "warmUp": {
-          "duration": "5 minutes",
-          "exercises": [
-            {
-              "name": "Exercise name",
-              "duration": 30,
-              "rest": 15,
-              "instructions": "Detailed instructions",
-              "targetMuscles": ["muscle1", "muscle2"]
-            },
-            {
-              "name": "Exercise name",
-              "duration": 30,
-              "rest": 15,
-              "instructions": "Detailed instructions",
-              "targetMuscles": ["muscle1", "muscle2"]
-            }
-          ]
-        },
-        "mainWorkout": {
-          "duration": "${length - 10} minutes",
-          "exercises": [
-            {
-              "name": "Exercise name",
-              "duration": 40,
-              "rest": 20,
-              "sets": 3,
-              "reps": "12-15",
-              "instructions": "Detailed instructions",
-              "targetMuscles": ["muscle1", "muscle2"],
-              "equipment": "equipment needed"
-            }
-          ]
-        },
-        "coolDown": {
-          "duration": "5 minutes",
-          "exercises": [
-            {
-              "name": "Exercise name",
-              "duration": 30,
-              "rest": 15,
-              "instructions": "Detailed instructions"
-            },
-            {
-              "name": "Exercise name",
-              "duration": 30,
-              "rest": 15,
-              "instructions": "Detailed instructions"
-            }
-          ]
-        }
-      },
-      "tips": ["tip1", "tip2"],
-      "precautions": ["precaution1", "precaution2"]
-    }
+    Use EXACTLY this JSON format and structure (fill in with appropriate values):
+    ${JSON.stringify(WORKOUT_REFERENCE, null, 2)}
 
-    Requirements:
-    1. Generate EXACTLY 10 different exercises for the main workout
-    2. For ${type} workouts:
-       - Strength: 40-45 seconds per exercise, 20-30 seconds rest
-       - HIIT: 30-40 seconds per exercise, 15-20 seconds rest
-       - Cardio: 45-60 seconds per exercise, 15-20 seconds rest
-       - Flexibility: 30-45 seconds per exercise, 10-15 seconds rest
-    3. Warm-up should have 3 exercises
-    4. Cool-down should have 3 exercises
-    5. Alternate between different muscle groups in main workout
-    6. Instructions must be detailed and clear
-    7. Include proper form cues in instructions
-    8. Rest periods must match the workout type
-    9. Exercise names should be specific and clear
-    10. Include equipment only if necessary for the exercise`;
+    Critical requirements:
+    1. Generate EXACTLY 10 different exercises for mainWorkout
+    2. Generate EXACTLY 3 exercises each for warmUp and coolDown
+    3. Duration format: numbers only for exercise duration and rest (30 not "30 seconds")
+    4. For ${type} workouts:
+       - Strength: 40-45 seconds exercise, 20-30 seconds rest
+       - HIIT: 30-40 seconds exercise, 15-20 seconds rest
+       - Cardio: 45-60 seconds exercise, 15-20 seconds rest
+       - Flexibility: 30-45 seconds exercise, 10-15 seconds rest
+    5. All instructions must include form cues
+    6. Exercise names must be specific (e.g., "Dumbbell Goblet Squats" not "Squats")
+    7. Include equipment only if necessary
+    8. Every exercise must have targetMuscles array`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -140,61 +164,96 @@ export async function generateWorkout(type, length) {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error('API Error:', errorData);
-      
-      if (response.status === 401) {
-        throw new Error('Invalid API key. Please check your OpenAI API key configuration.');
-      } else if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please try again later.');
-      } else {
-        throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
-      }
+      throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
     const workoutData = JSON.parse(data.choices[0].message.content);
 
-    // Validate workout data
-    if (!workoutData.sections?.mainWorkout?.exercises || 
-        workoutData.sections.mainWorkout.exercises.length !== 10) {
-      throw new Error('Invalid workout data: Must have exactly 10 main exercises');
-    }
+    // Validate the workout data
+    validateWorkoutData(workoutData);
 
-    // Store workout in Firebase
-    const workoutRef = await db.collection('workouts').add({
+    // Add metadata
+    const enrichedWorkout = {
       ...workoutData,
       userId: user.uid,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // Process exercises for session view
-    const processedWorkout = {
-      id: workoutRef.id,
-      ...workoutData,
-      exercises: [
-        ...workoutData.sections.warmUp.exercises.map(ex => ({
-          ...ex,
-          phase: 'Warm Up',
-          sets: 1
-        })),
-        ...workoutData.sections.mainWorkout.exercises.map(ex => ({
-          ...ex,
-          phase: 'Main Workout',
-          sets: ex.sets || 1
-        })),
-        ...workoutData.sections.coolDown.exercises.map(ex => ({
-          ...ex,
-          phase: 'Cool Down',
-          sets: 1
-        }))
-      ]
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      completed: false,
+      actualDuration: calculateTotalDuration(workoutData)
     };
 
-    return processedWorkout;
+    // Save to Firestore
+    const workoutRef = await db.collection('workouts').add(enrichedWorkout);
+
+    return {
+      id: workoutRef.id,
+      ...enrichedWorkout
+    };
   } catch (error) {
-    console.error('Error details:', error);
+    console.error('Error generating workout:', error);
     throw error;
   }
+}
+
+function validateWorkoutData(data) {
+  if (!data.sections?.mainWorkout?.exercises || 
+      data.sections.mainWorkout.exercises.length !== 10) {
+    throw new Error('Invalid workout data: Must have exactly 10 main exercises');
+  }
+
+  if (!data.sections?.warmUp?.exercises || 
+      data.sections.warmUp.exercises.length !== 3) {
+    throw new Error('Invalid workout data: Must have exactly 3 warm-up exercises');
+  }
+
+  if (!data.sections?.coolDown?.exercises || 
+      data.sections.coolDown.exercises.length !== 3) {
+    throw new Error('Invalid workout data: Must have exactly 3 cool-down exercises');
+  }
+}
+
+async function saveWorkoutToFirebase(workoutData) {
+  const auth = getAuth();
+  const user = auth.currentUser;
+  
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  const workoutRef = await db.collection('workouts').add({
+    ...workoutData,
+    userId: user.uid,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    completed: false
+  });
+
+  return workoutRef;
+}
+
+export function processWorkoutForSession(workoutData) {
+  return {
+    ...workoutData,
+    exercises: [
+      ...workoutData.sections.warmUp.exercises.map(ex => ({
+        ...ex,
+        phase: 'Warm Up',
+        sets: 1,
+        rest: parseInt(ex.rest) || 15
+      })),
+      ...workoutData.sections.mainWorkout.exercises.map(ex => ({
+        ...ex,
+        phase: 'Main Workout',
+        sets: parseInt(ex.sets) || 1,
+        rest: parseInt(ex.rest) || 20
+      })),
+      ...workoutData.sections.coolDown.exercises.map(ex => ({
+        ...ex,
+        phase: 'Cool Down',
+        sets: 1,
+        rest: parseInt(ex.rest) || 15
+      }))
+    ]
+  };
 }
 
 export function formatTime(seconds) {
