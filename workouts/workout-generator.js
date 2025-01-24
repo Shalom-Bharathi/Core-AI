@@ -1,22 +1,25 @@
-import { db } from '../firebase-config.js';
+import { db, firestore } from '../firebase-config.js';
 import { calculateTotalDuration, formatTime } from './workout-utils.js';
 
 let API_KEY;
-const apiRef = db.collection('API');
 
 // Get API key from Firebase
-apiRef.onSnapshot(querySnapshot => {
-  querySnapshot.docs.forEach(doc => {
+async function initializeAPI() {
+  const apiCollection = firestore.collection(db, 'API');
+  const apiSnapshot = await firestore.getDocs(apiCollection);
+  apiSnapshot.forEach(doc => {
     API_KEY = doc.data().API;
   });
-});
+}
+
+initializeAPI();
 
 export async function generateWorkout(type, length, userId) {
   try {
     if (!userId) throw new Error('User not authenticated');
 
-    const userDetailsRef = db.collection('body-details').doc(userId);
-    const userDetailsDoc = await userDetailsRef.get();
+    const userDetailsRef = firestore.doc(db, 'body-details', userId);
+    const userDetailsDoc = await firestore.getDoc(userDetailsRef);
 
     if (!userDetailsDoc.exists()) {
       throw new Error('Please complete your body details first');
@@ -33,12 +36,13 @@ export async function generateWorkout(type, length, userId) {
     const enrichedWorkout = {
       ...workoutData,
       userId,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdAt: firestore.serverTimestamp(),
       completed: false,
       actualDuration: calculateTotalDuration(workoutData)
     };
 
-    const workoutRef = await db.collection('workouts').add(enrichedWorkout);
+    const workoutsCollection = firestore.collection(db, 'workouts');
+    const workoutRef = await firestore.addDoc(workoutsCollection, enrichedWorkout);
 
     return {
       id: workoutRef.id,
@@ -51,6 +55,84 @@ export async function generateWorkout(type, length, userId) {
 }
 
 async function fetchWorkoutFromAI(type, length, bodyDetails) {
-  // ... Your existing AI fetch code ...
-  // Make sure this returns data in the correct format with sections
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [{
+          role: "user",
+          content: `Generate a detailed ${type} workout routine for ${length} minutes.
+          The user has the following details:
+          Height: ${bodyDetails.height}cm
+          Weight: ${bodyDetails.weight}kg
+          Age: ${bodyDetails.age}
+          Body Type: ${bodyDetails.bodyType}
+          Body Fat: ${bodyDetails.fatComposition}%
+
+          Return a JSON object with this exact structure:
+          {
+            "name": "Workout name",
+            "type": "${type}",
+            "duration": "${length} minutes",
+            "difficulty": "beginner/intermediate/advanced",
+            "sections": {
+              "warmUp": {
+                "duration": "5 minutes",
+                "exercises": [
+                  {
+                    "name": "Exercise name",
+                    "duration": 30,
+                    "rest": 15,
+                    "instructions": "Detailed instructions",
+                    "targetMuscles": ["muscle1", "muscle2"]
+                  }
+                ]
+              },
+              "mainWorkout": {
+                "duration": "${length - 10} minutes",
+                "exercises": [
+                  {
+                    "name": "Exercise name",
+                    "duration": 40,
+                    "rest": 20,
+                    "sets": 3,
+                    "reps": "12-15",
+                    "instructions": "Detailed instructions",
+                    "targetMuscles": ["muscle1", "muscle2"]
+                  }
+                ]
+              },
+              "coolDown": {
+                "duration": "5 minutes",
+                "exercises": [
+                  {
+                    "name": "Exercise name",
+                    "duration": 30,
+                    "rest": 15,
+                    "instructions": "Detailed instructions"
+                  }
+                ]
+              }
+            }
+          }`
+        }],
+        temperature: 0.7
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate workout');
+    }
+
+    const data = await response.json();
+    return JSON.parse(data.choices[0].message.content);
+  } catch (error) {
+    console.error('Error in fetchWorkoutFromAI:', error);
+    throw error;
+  }
 } 
