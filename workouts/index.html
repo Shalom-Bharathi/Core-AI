@@ -170,7 +170,7 @@
 
   <script type="module">
     import { handleSignOut } from '../auth.js';
-    import { generateWorkout } from './app.js';
+    import { generateWorkout, calculateTotalDuration, formatTime } from './app.js';
 
     let currentLoadingStep = 0;
     const loadingSteps = [
@@ -229,7 +229,15 @@
 
       try {
         const workout = await generateWorkout(type, length);
+        
+        // Calculate total duration including rest periods
+        const totalDuration = calculateTotalDuration(workout);
+        workout.actualDuration = formatTime(totalDuration);
+        
+        // Store the complete workout data
         localStorage.setItem('currentWorkout', JSON.stringify(workout));
+        
+        // Navigate to workout details
         window.location.href = './workout-details/';
       } catch (error) {
         console.error('Error generating workout:', error);
@@ -238,6 +246,74 @@
       }
     }
 
+    // Load saved workouts from Firebase
+    async function loadSavedWorkouts() {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        
+        if (!user) return;
+
+        const workoutsRef = db.collection('workouts');
+        const snapshot = await workoutsRef
+          .where('userId', '==', user.uid)
+          .orderBy('createdAt', 'desc')
+          .limit(6)
+          .get();
+
+        const routinesGrid = document.getElementById('savedRoutines');
+        routinesGrid.innerHTML = ''; // Clear existing routines
+
+        if (snapshot.empty) {
+          routinesGrid.innerHTML = `
+            <div class="no-routines">
+              <p>No saved workouts yet. Generate your first workout!</p>
+            </div>
+          `;
+          return;
+        }
+
+        snapshot.forEach(doc => {
+          const workout = doc.data();
+          const routineCard = document.createElement('div');
+          routineCard.className = 'routine-card';
+          routineCard.innerHTML = `
+            <div class="routine-header">
+              <h3>${workout.name}</h3>
+              <span class="routine-type">${workout.type}</span>
+            </div>
+            <p>${workout.sections.mainWorkout.exercises.length} exercises · ${workout.duration}</p>
+            <div class="routine-actions">
+              <button class="button-secondary" onclick="loadWorkout('${doc.id}')">
+                View Details
+              </button>
+            </div>
+          `;
+          routinesGrid.appendChild(routineCard);
+        });
+      } catch (error) {
+        console.error('Error loading saved workouts:', error);
+      }
+    }
+
+    // Function to load a saved workout
+    window.loadWorkout = async function(workoutId) {
+      try {
+        const workoutDoc = await db.collection('workouts').doc(workoutId).get();
+        if (workoutDoc.exists) {
+          const workout = workoutDoc.data();
+          localStorage.setItem('currentWorkout', JSON.stringify({
+            id: workoutId,
+            ...workout
+          }));
+          window.location.href = './workout-details/';
+        }
+      } catch (error) {
+        console.error('Error loading workout:', error);
+        alert('Error loading workout: ' + error.message);
+      }
+    };
+
     // Add event listeners
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('logoutButton').addEventListener('click', handleSignOut);
@@ -245,52 +321,16 @@
       document.getElementById('cancelWorkout').addEventListener('click', hideWorkoutModal);
       document.getElementById('workoutForm').addEventListener('submit', handleWorkoutSubmit);
       
-      // Sample data for saved routines
-      const savedRoutines = [
-        {
-          name: 'Full Body Strength',
-          type: 'strength',
-          exercises: 8,
-          duration: '45 min'
-        },
-        {
-          name: 'HIIT Cardio Blast',
-          type: 'hiit',
-          exercises: 6,
-          duration: '30 min'
-        },
-        {
-          name: 'Morning Flexibility',
-          type: 'flexibility',
-          exercises: 10,
-          duration: '20 min'
-        }
-      ];
-
-      // Populate saved routines
-      const routinesGrid = document.getElementById('savedRoutines');
-      savedRoutines.forEach(routine => {
-        const routineCard = document.createElement('div');
-        routineCard.className = 'routine-card';
-        routineCard.innerHTML = `
-          <div class="routine-header">
-            <h3>${routine.name}</h3>
-            <span class="routine-type">${routine.type}</span>
-          </div>
-          <p>${routine.exercises} exercises · ${routine.duration}</p>
-          <div class="routine-actions">
-          </div>
-        `;
-        routinesGrid.appendChild(routineCard);
-      });
+      // Load saved workouts
+      loadSavedWorkouts();
 
       // Add click handlers for workout type cards
       document.querySelectorAll('.workout-type-card').forEach(card => {
         card.addEventListener('click', (e) => {
           e.preventDefault();
           const workoutType = card.dataset.type;
-          // Handle workout type selection
-          console.log(`Selected workout type: ${workoutType}`);
+          document.getElementById('workoutType').value = workoutType;
+          showWorkoutModal();
         });
       });
     });

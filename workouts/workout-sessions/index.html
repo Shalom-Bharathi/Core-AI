@@ -280,6 +280,7 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
 
   <script type="module">
     import { handleSignOut } from '../../auth.js';
+    import { formatTime } from '../app.js';
 
     let workout = null;
     let currentExerciseIndex = 0;
@@ -288,6 +289,47 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
     let isPaused = false;
     let timer = null;
     let currentSet = 1;
+    let totalSets = 1;
+
+    function processWorkoutData(workoutData) {
+      // Process and flatten the exercises array
+      const exercises = [];
+      
+      // Add warm-up exercises
+      workoutData.sections.warmUp.exercises.forEach(ex => {
+        exercises.push({
+          ...ex,
+          phase: 'Warm Up',
+          sets: 1,
+          rest: ex.rest || 15
+        });
+      });
+
+      // Add main workout exercises
+      workoutData.sections.mainWorkout.exercises.forEach(ex => {
+        exercises.push({
+          ...ex,
+          phase: 'Main Workout',
+          sets: ex.sets || 1,
+          rest: ex.rest || 30
+        });
+      });
+
+      // Add cool-down exercises
+      workoutData.sections.coolDown.exercises.forEach(ex => {
+        exercises.push({
+          ...ex,
+          phase: 'Cool Down',
+          sets: 1,
+          rest: ex.rest || 15
+        });
+      });
+
+      return {
+        ...workoutData,
+        exercises: exercises
+      };
+    }
 
     function loadWorkout() {
       const workoutData = JSON.parse(localStorage.getItem('currentWorkout'));
@@ -295,15 +337,11 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
         window.location.href = '../';
         return;
       }
-      workout = workoutData;
+
+      // Process the workout data
+      workout = processWorkoutData(workoutData);
       
-      // Flatten exercises for session view
-      workout.exercises = [
-        ...workout.sections.warmUp.exercises.map(ex => ({...ex, phase: 'Warm Up'})),
-        ...workout.sections.mainWorkout.exercises.map(ex => ({...ex, phase: 'Main Workout'})),
-        ...workout.sections.coolDown.exercises.map(ex => ({...ex, phase: 'Cool Down'}))
-      ];
-      
+      // Update UI
       document.getElementById('workoutName').textContent = workout.name;
       document.getElementById('workoutDescription').textContent = 
         `${workout.type} workout - ${workout.difficulty} level`;
@@ -317,15 +355,19 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
       currentExerciseIndex = index;
       const exercise = workout.exercises[index];
       currentSet = 1;
+      totalSets = exercise.sets || 1;
       
       document.getElementById('currentExercise').innerHTML = `
         <h2 class="exercise-name">${exercise.name}</h2>
         <p class="exercise-instructions">${exercise.instructions}</p>
-        ${exercise.sets ? `<p class="exercise-sets">Set ${currentSet}/${exercise.sets}</p>` : ''}
+        ${totalSets > 1 ? `<p class="exercise-sets">Set ${currentSet}/${totalSets}</p>` : ''}
       `;
       
       document.getElementById('currentPhase').textContent = exercise.phase;
-      timeRemaining = exercise.duration;
+      document.getElementById('exerciseCount').textContent = 
+        `${index + 1}/${workout.exercises.length}`;
+
+      timeRemaining = parseInt(exercise.duration) || 30;
       isResting = false;
       updateTimer();
       startTimer();
@@ -333,7 +375,7 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
 
     function startRest(duration) {
       isResting = true;
-      timeRemaining = duration;
+      timeRemaining = parseInt(duration) || 15;
       document.getElementById('currentPhase').textContent = 'Rest';
       updateTimer();
     }
@@ -341,8 +383,7 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
     function updateTimer() {
       const minutes = Math.floor(timeRemaining / 60);
       const seconds = timeRemaining % 60;
-      document.getElementById('timeRemaining').textContent = 
-        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      document.getElementById('timeRemaining').textContent = formatTime(timeRemaining);
       
       const exercise = workout.exercises[currentExerciseIndex];
       const totalTime = isResting ? exercise.rest : exercise.duration;
@@ -361,11 +402,13 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
             const exercise = workout.exercises[currentExerciseIndex];
             
             if (isResting) {
-              if (exercise.sets && currentSet < exercise.sets) {
+              if (currentSet < totalSets) {
                 currentSet++;
-                document.querySelector('.exercise-sets').textContent = 
-                  `Set ${currentSet}/${exercise.sets}`;
-                timeRemaining = exercise.duration;
+                const setsElement = document.querySelector('.exercise-sets');
+                if (setsElement) {
+                  setsElement.textContent = `Set ${currentSet}/${totalSets}`;
+                }
+                timeRemaining = parseInt(exercise.duration);
                 isResting = false;
               } else if (currentExerciseIndex < workout.exercises.length - 1) {
                 startExercise(currentExerciseIndex + 1);
@@ -397,7 +440,7 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
 
     function endWorkout() {
       clearInterval(timer);
-      // Show completion screen or redirect
+      // Save workout completion to Firebase here if needed
       window.location.href = '../';
     }
 
