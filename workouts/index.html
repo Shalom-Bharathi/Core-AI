@@ -12,22 +12,9 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-firestore.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
-      authDomain: "coreai-82c79.firebaseapp.com",
-      databaseURL: "https://coreai-82c79-default-rtdb.firebaseio.com",
-      projectId: "coreai-82c79",
-      storageBucket: "coreai-82c79.firebasestorage.app",
-      messagingSenderId: "97395011364",
-      appId: "1:97395011364:web:1e8f6a06fce409bfd80db1",
-      measurementId: "G-0J1RLMVEGC"
-    };
-    firebase.initializeApp(firebaseConfig);
-  </script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.2.0/firebase-app.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.2.0/firebase-auth.js"></script>
+  <script type="module" src="https://www.gstatic.com/firebasejs/11.2.0/firebase-firestore.js"></script>
 </head>
 <body>
   <div id="app" class="app">
@@ -169,8 +156,9 @@
   </div>
 
   <script type="module">
+    import { auth } from '../firebase-config.js';
+    import { loadSavedWorkouts, handleWorkoutSubmit } from './workouts.js';
     import { handleSignOut } from '../auth.js';
-    import { generateWorkout, calculateTotalDuration, formatTime } from './app.js';
 
     let currentLoadingStep = 0;
     const loadingSteps = [
@@ -219,7 +207,7 @@
       }
     }
 
-    async function handleWorkoutSubmit(e) {
+    async function handleFormSubmit(e) {
       e.preventDefault();
       const type = document.getElementById('workoutType').value;
       const length = document.getElementById('workoutLength').value;
@@ -228,16 +216,7 @@
       showLoadingModal();
 
       try {
-        const workout = await generateWorkout(type, length);
-        
-        // Calculate total duration including rest periods
-        const totalDuration = calculateTotalDuration(workout);
-        workout.actualDuration = formatTime(totalDuration);
-        
-        // Store the complete workout data
-        localStorage.setItem('currentWorkout', JSON.stringify(workout));
-        
-        // Navigate to workout details
+        await handleWorkoutSubmit(type, length);
         window.location.href = './workout-details/';
       } catch (error) {
         console.error('Error generating workout:', error);
@@ -246,83 +225,21 @@
       }
     }
 
-    // Load saved workouts from Firebase
-    async function loadSavedWorkouts() {
-      try {
-        const auth = getAuth();
-        const user = auth.currentUser;
-        
-        if (!user) return;
-
-        const workoutsRef = db.collection('workouts');
-        const snapshot = await workoutsRef
-          .where('userId', '==', user.uid)
-          .orderBy('createdAt', 'desc')
-          .limit(6)
-          .get();
-
-        const routinesGrid = document.getElementById('savedRoutines');
-        routinesGrid.innerHTML = ''; // Clear existing routines
-
-        if (snapshot.empty) {
-          routinesGrid.innerHTML = `
-            <div class="no-routines">
-              <p>No saved workouts yet. Generate your first workout!</p>
-            </div>
-          `;
-          return;
-        }
-
-        snapshot.forEach(doc => {
-          const workout = doc.data();
-          const routineCard = document.createElement('div');
-          routineCard.className = 'routine-card';
-          routineCard.innerHTML = `
-            <div class="routine-header">
-              <h3>${workout.name}</h3>
-              <span class="routine-type">${workout.type}</span>
-            </div>
-            <p>${workout.sections.mainWorkout.exercises.length} exercises · ${workout.duration}</p>
-            <div class="routine-actions">
-              <button class="button-secondary" onclick="loadWorkout('${doc.id}')">
-                View Details
-              </button>
-            </div>
-          `;
-          routinesGrid.appendChild(routineCard);
-        });
-      } catch (error) {
-        console.error('Error loading saved workouts:', error);
-      }
-    }
-
-    // Function to load a saved workout
-    window.loadWorkout = async function(workoutId) {
-      try {
-        const workoutDoc = await db.collection('workouts').doc(workoutId).get();
-        if (workoutDoc.exists) {
-          const workout = workoutDoc.data();
-          localStorage.setItem('currentWorkout', JSON.stringify({
-            id: workoutId,
-            ...workout
-          }));
-          window.location.href = './workout-details/';
-        }
-      } catch (error) {
-        console.error('Error loading workout:', error);
-        alert('Error loading workout: ' + error.message);
-      }
-    };
-
     // Add event listeners
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Wait for auth state to be ready
+      auth.onAuthStateChanged(async (user) => {
+        if (user) {
+          await loadSavedWorkouts();
+        } else {
+          window.location.href = '../login.html';
+        }
+      });
+
       document.getElementById('logoutButton').addEventListener('click', handleSignOut);
       document.getElementById('createWorkoutBtn').addEventListener('click', showWorkoutModal);
       document.getElementById('cancelWorkout').addEventListener('click', hideWorkoutModal);
-      document.getElementById('workoutForm').addEventListener('submit', handleWorkoutSubmit);
-      
-      // Load saved workouts
-      loadSavedWorkouts();
+      document.getElementById('workoutForm').addEventListener('submit', handleFormSubmit);
 
       // Add click handlers for workout type cards
       document.querySelectorAll('.workout-type-card').forEach(card => {
