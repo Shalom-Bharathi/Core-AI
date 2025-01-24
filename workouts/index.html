@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
+  <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+  <title>CoreAI - Workouts</title>
+  <link rel="stylesheet" href="../style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=cal-sans@400,500,600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
+      authDomain: "coreai-82c79.firebaseapp.com",
+      databaseURL: "https://coreai-82c79-default-rtdb.firebaseio.com",
+      projectId: "coreai-82c79",
+      storageBucket: "coreai-82c79.firebasestorage.app",
+      messagingSenderId: "97395011364",
+      appId: "1:97395011364:web:1e8f6a06fce409bfd80db1",
+      measurementId: "G-0J1RLMVEGC"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+<body>
+  <div id="app" class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-content">
+        <div class="logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span class="logo-text">CoreAI</span>
+        </div>
+        
+        <nav class="nav-links">
+          <a href="../index.html" class="nav-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="#" class="nav-link active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span>Workouts</span>
+            <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </a>
+          <!-- Other nav links remain the same as in index.html -->
+        </nav>
+      </div>
+
+      <button class="logout-button nav-link" id="logoutButton">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        <span>Logout</span>
+      </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <header class="header">
+        <div class="header-content">
+          <h1>Workout Generator</h1>
+          <p>Create personalized workouts based on your goals and preferences.</p>
+        </div>
+        <div class="header-actions">
+          <button class="button-primary create-workout-btn" id="createWorkoutBtn">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Generate New Workout
+          </button>
+        </div>
+      </header>
+
+      <!-- Workout Types Grid -->
+      <div class="workout-types-grid">
+        <a href="#" class="workout-type-card" data-type="strength">
+          <div class="workout-type-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6.5 6.5 17.5 17.5"/><path d="m6.5 17.5 17.5-17.5"/><path d="m2 21 3-3"/><path d="m19 4 3-3"/><path d="m2 3 3 3"/><path d="m19 20 3 3"/></svg>
+          </div>
+          <h3>Strength Training</h3>
+          <p>Build muscle and increase strength with targeted exercises</p>
+        </a>
+
+        <a href="#" class="workout-type-card" data-type="cardio">
+          <div class="workout-type-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </div>
+          <h3>Cardio</h3>
+          <p>Improve endurance and burn calories with cardio workouts</p>
+        </a>
+
+        <a href="#" class="workout-type-card" data-type="hiit">
+          <div class="workout-type-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3>HIIT</h3>
+          <p>High-intensity interval training for maximum results</p>
+        </a>
+
+        <a href="#" class="workout-type-card" data-type="flexibility">
+          <div class="workout-type-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+          </div>
+          <h3>Flexibility</h3>
+          <p>Improve mobility and reduce injury risk with stretching routines</p>
+        </a>
+      </div>
+
+      <!-- Saved Routines Section -->
+      <section class="saved-routines">
+        <h2>Saved Routines</h2>
+        <div class="routines-grid" id="savedRoutines">
+          <!-- Routines will be populated by JavaScript -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Workout Generation Modal -->
+  <div id="workoutModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <h2>Create New Workout</h2>
+      <form id="workoutForm" class="workout-form">
+        <div class="form-group">
+          <label for="workoutType">Workout Type</label>
+          <select id="workoutType" required>
+            <option value="">Select a type</option>
+            <option value="strength">Strength Training</option>
+            <option value="cardio">Cardio</option>
+            <option value="hiit">HIIT</option>
+            <option value="flexibility">Flexibility</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="workoutLength">Workout Length (minutes)</label>
+          <select id="workoutLength" required>
+            <option value="">Select duration</option>
+            <option value="15">15 minutes</option>
+            <option value="30">30 minutes</option>
+            <option value="45">45 minutes</option>
+            <option value="60">60 minutes</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="button-secondary" id="cancelWorkout">Cancel</button>
+          <button type="submit" class="button-primary">Generate Workout</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Loading Modal -->
+  <div id="loadingModal" class="modal loading-modal" style="display: none;">
+    <div class="modal-content">
+      <div class="loading-spinner"></div>
+      <h3 id="loadingStatus">Initializing...</h3>
+      <div class="loading-steps">
+        <div class="loading-step" id="step1">Fetching user vitals...</div>
+        <div class="loading-step" id="step2">Analyzing body composition...</div>
+        <div class="loading-step" id="step3">Retrieving fitness history...</div>
+        <div class="loading-step" id="step4">Generating personalized workout...</div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { handleSignOut } from '../auth.js';
+    import { generateWorkout } from './app.js';
+
+    let currentLoadingStep = 0;
+    const loadingSteps = [
+      'Fetching user vitals...',
+      'Analyzing body composition...',
+      'Retrieving fitness history...',
+      'Generating personalized workout...'
+    ];
+
+    function showWorkoutModal() {
+      document.getElementById('workoutModal').style.display = 'flex';
+    }
+
+    function hideWorkoutModal() {
+      document.getElementById('workoutModal').style.display = 'none';
+    }
+
+    function showLoadingModal() {
+      document.getElementById('loadingModal').style.display = 'flex';
+      startLoadingSequence();
+    }
+
+    function hideLoadingModal() {
+      document.getElementById('loadingModal').style.display = 'none';
+      currentLoadingStep = 0;
+      document.querySelectorAll('.loading-step').forEach(step => {
+        step.classList.remove('active', 'completed');
+      });
+    }
+
+    function updateLoadingStep(step) {
+      const stepElement = document.getElementById(`step${step + 1}`);
+      stepElement.classList.add('active');
+      
+      if (step > 0) {
+        document.getElementById(`step${step}`).classList.remove('active');
+        document.getElementById(`step${step}`).classList.add('completed');
+      }
+    }
+
+    async function startLoadingSequence() {
+      for (let i = 0; i < loadingSteps.length; i++) {
+        currentLoadingStep = i;
+        updateLoadingStep(i);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    }
+
+    async function handleWorkoutSubmit(e) {
+      e.preventDefault();
+      const type = document.getElementById('workoutType').value;
+      const length = document.getElementById('workoutLength').value;
+      
+      hideWorkoutModal();
+      showLoadingModal();
+
+      try {
+        const workout = await generateWorkout(type, length);
+        hideLoadingModal();
+        
+        // Create and show workout result modal
+        const workoutModal = document.createElement('div');
+        workoutModal.className = 'modal';
+        workoutModal.innerHTML = `
+          <div class="modal-content">
+            <h2>Your Generated Workout</h2>
+            <div class="workout-details">
+              <pre>${workout}</pre>
+            </div>
+            <div class="modal-actions">
+              <button class="button-secondary" onclick="this.closest('.modal').remove()">Close</button>
+              <button class="button-primary" onclick="saveWorkout('${type}', '${length}', \`${workout}\`)">
+                Save Workout
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(workoutModal);
+      } catch (error) {
+        hideLoadingModal();
+        
+        // Show error modal
+        const errorModal = document.createElement('div');
+        errorModal.className = 'modal';
+        errorModal.innerHTML = `
+          <div class="modal-content">
+            <h2>Error</h2>
+            <p>${error.message}</p>
+            <div class="modal-actions">
+              <button class="button-primary" onclick="this.closest('.modal').remove()">OK</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(errorModal);
+      }
+    }
+
+    // Add event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('logoutButton').addEventListener('click', handleSignOut);
+      document.getElementById('createWorkoutBtn').addEventListener('click', showWorkoutModal);
+      document.getElementById('cancelWorkout').addEventListener('click', hideWorkoutModal);
+      document.getElementById('workoutForm').addEventListener('submit', handleWorkoutSubmit);
+      
+      // Sample data for saved routines
+      const savedRoutines = [
+        {
+          name: 'Full Body Strength',
+          type: 'strength',
+          exercises: 8,
+          duration: '45 min'
+        },
+        {
+          name: 'HIIT Cardio Blast',
+          type: 'hiit',
+          exercises: 6,
+          duration: '30 min'
+        },
+        {
+          name: 'Morning Flexibility',
+          type: 'flexibility',
+          exercises: 10,
+          duration: '20 min'
+        }
+      ];
+
+      // Populate saved routines
+      const routinesGrid = document.getElementById('savedRoutines');
+      savedRoutines.forEach(routine => {
+        const routineCard = document.createElement('div');
+        routineCard.className = 'routine-card';
+        routineCard.innerHTML = `
+          <div class="routine-header">
+            <h3>${routine.name}</h3>
+            <span class="routine-type">${routine.type}</span>
+          </div>
+          <p>${routine.exercises} exercises · ${routine.duration}</p>
+          <div class="routine-actions">
+          </div>
+        `;
+        routinesGrid.appendChild(routineCard);
+      });
+
+      // Add click handlers for workout type cards
+      document.querySelectorAll('.workout-type-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          e.preventDefault();
+          const workoutType = card.dataset.type;
+          // Handle workout type selection
+          console.log(`Selected workout type: ${workoutType}`);
+        });
+      });
+    });
+  </script>
+
+  <style>
+    .loading-modal .modal-content {
+      text-align: center;
+    }
+
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 3px solid var(--primary-light);
+      border-top: 3px solid var(--primary);
+      border-radius: 50%;
+      margin: 0 auto 1rem;
+      animation: spin 1s linear infinite;
+    }
+
+    .loading-steps {
+      margin-top: 2rem;
+      text-align: left;
+    }
+
+    .loading-step {
+      padding: 0.5rem;
+      color: var(--muted);
+      transition: all 0.3s ease;
+    }
+
+    .loading-step.active {
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .loading-step.completed {
+      color: var(--success);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .button-secondary {
+      padding: 0.5rem 1rem;
+      background-color: transparent;
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      color: var(--muted);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .button-secondary:hover {
+      background-color: var(--background);
+      border-color: var(--muted);
+    }
+
+    .workout-details {
+      margin: 1rem 0;
+      max-height: 60vh;
+      overflow-y: auto;
+      background: var(--background);
+      padding: 1rem;
+      border-radius: 0.5rem;
+    }
+
+    .workout-details pre {
+      white-space: pre-wrap;
+      font-family: 'Inter', sans-serif;
+      line-height: 1.5;
+    }
+
+    .error-message {
+      color: var(--error);
+      margin: 1rem 0;
+      padding: 1rem;
+      background: rgb(239 68 68 / 0.1);
+      border-radius: 0.5rem;
+    }
+  </style>
+</body>
+</html>

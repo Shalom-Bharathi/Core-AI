@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoreAI - Calorie Calculator</title>
+  <link rel="stylesheet" href="../style.css">
+  <link rel="stylesheet" href="calorie.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=cal-sans@400,500,600&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
+      authDomain: "coreai-82c79.firebaseapp.com",
+      databaseURL: "https://coreai-82c79-default-rtdb.firebaseio.com",
+      projectId: "coreai-82c79",
+      storageBucket: "coreai-82c79.firebasestorage.app",
+      messagingSenderId: "97395011364",
+      appId: "1:97395011364:web:1e8f6a06fce409bfd80db1",
+      measurementId: "G-0J1RLMVEGC"
+    };
+    firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+<body>
+  <div class="app">
+    <!-- Sidebar remains the same -->
+    <aside class="sidebar">
+      <!-- ... sidebar content ... -->
+    </aside>
+
+    <main class="main-content">
+      <div class="calorie-calculator">
+        <h1>Calorie Calculator</h1>
+        <p class="description">Describe your meal and get instant nutritional information</p>
+
+        <div class="calculator-container">
+          <form id="mealForm" class="meal-form">
+            <div class="form-group">
+              <label for="mealDescription">Describe your meal</label>
+              <textarea 
+                id="mealDescription" 
+                placeholder="Example: 2 scrambled eggs with cheese, 2 slices of whole wheat toast, and a cup of black coffee"
+                required
+              ></textarea>
+            </div>
+            <button type="submit" class="button-primary">
+              Calculate Calories
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            </button>
+          </form>
+
+          <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>Analyzing your meal...</p>
+          </div>
+
+          <div id="results" class="results" style="display: none;">
+            <div class="results-header">
+              <h2>Nutritional Information</h2>
+              <div class="health-rating">
+                <span>Health Rating:</span>
+                <div id="healthScore" class="health-score">0/10</div>
+              </div>
+            </div>
+
+            <div class="macros-grid">
+              <div class="macro-card">
+                <h3>Calories</h3>
+                <p id="totalCalories">0</p>
+              </div>
+              <div class="macro-card">
+                <h3>Protein</h3>
+                <p id="protein">0g</p>
+              </div>
+              <div class="macro-card">
+                <h3>Carbs</h3>
+                <p id="carbs">0g</p>
+              </div>
+              <div class="macro-card">
+                <h3>Fats</h3>
+                <p id="fats">0g</p>
+              </div>
+            </div>
+
+            <div class="ingredients-section">
+              <h3>Ingredients Breakdown</h3>
+              <div id="ingredientsList" class="ingredients-list">
+                <!-- Ingredients will be populated here -->
+              </div>
+            </div>
+
+            <div class="tips-section">
+              <h3>Nutritional Tips</h3>
+              <ul id="tipsList" class="tips-list">
+                <!-- Tips will be populated here -->
+              </ul>
+            </div>
+
+            <div id="warningsSection" class="warnings-section" style="display: none;">
+              <h3>Warnings</h3>
+              <ul id="warningsList" class="warnings-list">
+                <!-- Warnings will be populated here -->
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module">
+    import { calculateCalories } from './app.js';
+    import { handleSignOut } from '../auth.js';
+
+    document.getElementById('logoutButton')?.addEventListener('click', handleSignOut);
+
+    const mealForm = document.getElementById('mealForm');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const results = document.getElementById('results');
+
+    mealForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const mealDescription = document.getElementById('mealDescription').value;
+      
+      // Show loading state
+      loadingIndicator.style.display = 'flex';
+      results.style.display = 'none';
+      
+      try {
+        const nutritionData = await calculateCalories(mealDescription);
+        
+        // Update UI with results
+        document.getElementById('totalCalories').textContent = nutritionData.calories;
+        document.getElementById('protein').textContent = nutritionData.macros.protein;
+        document.getElementById('carbs').textContent = nutritionData.macros.carbs;
+        document.getElementById('fats').textContent = nutritionData.macros.fats;
+        document.getElementById('healthScore').textContent = `${nutritionData.healthRating}/10`;
+
+        // Update ingredients list
+        const ingredientsList = document.getElementById('ingredientsList');
+        ingredientsList.innerHTML = nutritionData.ingredients.map(ingredient => `
+          <div class="ingredient-item">
+            <span class="ingredient-name">${ingredient.name}</span>
+            <span class="ingredient-amount">${ingredient.amount}</span>
+            <span class="ingredient-calories">${ingredient.calories} cal</span>
+          </div>
+        `).join('');
+
+        // Update tips
+        const tipsList = document.getElementById('tipsList');
+        tipsList.innerHTML = nutritionData.nutritionalTips.map(tip => `
+          <li>${tip}</li>
+        `).join('');
+
+        // Update warnings if any
+        const warningsSection = document.getElementById('warningsSection');
+        const warningsList = document.getElementById('warningsList');
+        if (nutritionData.warnings && nutritionData.warnings.length > 0) {
+          warningsList.innerHTML = nutritionData.warnings.map(warning => `
+            <li>${warning}</li>
+          `).join('');
+          warningsSection.style.display = 'block';
+        } else {
+          warningsSection.style.display = 'none';
+        }
+
+        // Show results
+        results.style.display = 'block';
+      } catch (error) {
+        alert('Error calculating calories: ' + error.message);
+      } finally {
+        loadingIndicator.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
