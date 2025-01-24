@@ -97,6 +97,7 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
                 </svg>
                 <div class="timer-display">
                   <span id="timeRemaining">00:00</span>
+                  <span id="timerPhase" class="timer-phase">Exercise</span>
                 </div>
               </div>
             </div>
@@ -392,7 +393,6 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
     let totalSets = 1;
 
     function processWorkoutData(workoutData) {
-      // Process and flatten the exercises array
       const exercises = [];
       
       // Add warm-up exercises
@@ -401,7 +401,7 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
           ...ex,
           phase: 'Warm Up',
           sets: 1,
-          rest: ex.rest || 15
+          rest: parseInt(ex.rest) || 15
         });
       });
 
@@ -410,8 +410,8 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
         exercises.push({
           ...ex,
           phase: 'Main Workout',
-          sets: ex.sets || 1,
-          rest: ex.rest || 30
+          sets: parseInt(ex.sets) || 1,
+          rest: parseInt(ex.rest) || 30
         });
       });
 
@@ -421,7 +421,7 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
           ...ex,
           phase: 'Cool Down',
           sets: 1,
-          rest: ex.rest || 15
+          rest: parseInt(ex.rest) || 15
         });
       });
 
@@ -431,24 +431,28 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
       };
     }
 
-    function loadWorkout() {
-      const workoutData = JSON.parse(localStorage.getItem('currentWorkout'));
-      if (!workoutData) {
-        window.location.href = '../';
-        return;
-      }
+    async function loadWorkout() {
+      try {
+        const workoutData = JSON.parse(localStorage.getItem('currentWorkout'));
+        if (!workoutData) {
+          window.location.href = '../';
+          return;
+        }
 
-      // Process the workout data
-      workout = processWorkoutData(workoutData);
-      
-      // Update UI
-      document.getElementById('workoutName').textContent = workout.name;
-      document.getElementById('workoutDescription').textContent = 
-        `${workout.type} workout - ${workout.difficulty} level`;
-      document.getElementById('exerciseCount').textContent = 
-        `1/${workout.exercises.length}`;
-      
-      startExercise(0);
+        workout = processWorkoutData(workoutData);
+        
+        document.getElementById('workoutName').textContent = workout.name;
+        document.getElementById('workoutDescription').textContent = 
+          `${workout.type} workout - ${workout.difficulty} level`;
+        document.getElementById('exerciseCount').textContent = 
+          `1/${workout.exercises.length}`;
+        
+        startExercise(0);
+        updateUpcomingExercises();
+      } catch (error) {
+        console.error('Error loading workout:', error);
+        alert('Error loading workout');
+      }
     }
 
     function startExercise(index) {
@@ -457,70 +461,115 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
       currentSet = 1;
       totalSets = exercise.sets || 1;
       
-      document.getElementById('currentExercise').innerHTML = `
-        <h2 class="exercise-name">${exercise.name}</h2>
-        <p class="exercise-instructions">${exercise.instructions}</p>
-        ${totalSets > 1 ? `<p class="exercise-sets">Set ${currentSet}/${totalSets}</p>` : ''}
-      `;
-      
-      document.getElementById('currentPhase').textContent = exercise.phase;
-      document.getElementById('exerciseCount').textContent = 
-        `${index + 1}/${workout.exercises.length}`;
-
+      updateExerciseDisplay(exercise);
       timeRemaining = parseInt(exercise.duration) || 30;
       isResting = false;
       updateTimer();
       startTimer();
     }
 
-    function startRest(duration) {
-      isResting = true;
-      timeRemaining = parseInt(duration) || 15;
-      document.getElementById('currentPhase').textContent = 'Rest';
-      updateTimer();
+    function updateExerciseDisplay(exercise) {
+      const exerciseElement = document.getElementById('currentExercise');
+      exerciseElement.innerHTML = `
+        <h2 class="exercise-name">${exercise.name}</h2>
+        <p class="exercise-instructions">${exercise.instructions}</p>
+        ${totalSets > 1 ? `<p class="exercise-sets">Set ${currentSet}/${totalSets}</p>` : ''}
+        ${exercise.targetMuscles ? `
+          <div class="target-muscles">
+            <span class="label">Target Muscles:</span>
+            <span class="muscles">${exercise.targetMuscles.join(', ')}</span>
+          </div>
+        ` : ''}
+      `;
+      
+      document.getElementById('currentPhase').textContent = exercise.phase;
+      document.getElementById('exerciseCount').textContent = 
+        `${currentExerciseIndex + 1}/${workout.exercises.length}`;
     }
 
     function updateTimer() {
-      const minutes = Math.floor(timeRemaining / 60);
-      const seconds = timeRemaining % 60;
-      document.getElementById('timeRemaining').textContent = formatTime(timeRemaining);
+      const timerDisplay = document.getElementById('timeRemaining');
+      const timerPhase = document.getElementById('timerPhase');
+      const circle = document.querySelector('.progress-ring-circle');
       
+      if (!timerDisplay || !timerPhase || !circle) return;
+
+      timerDisplay.textContent = formatTime(timeRemaining);
+      timerPhase.textContent = isResting ? 'Rest' : 'Exercise';
+
+      // Update progress ring
       const exercise = workout.exercises[currentExerciseIndex];
       const totalTime = isResting ? exercise.rest : exercise.duration;
-      const progress = ((totalTime - timeRemaining) / totalTime) * 100;
-      document.getElementById('exerciseProgress').style.width = `${progress}%`;
+      const progress = (timeRemaining / totalTime) * 100;
+      const circumference = 2 * Math.PI * 90;
+      const offset = circumference - (progress / 100) * circumference;
+      circle.style.strokeDasharray = `${circumference} ${circumference}`;
+      circle.style.strokeDashoffset = offset;
     }
 
     function startTimer() {
       if (timer) clearInterval(timer);
+      
       timer = setInterval(() => {
-        if (!isPaused) {
+        if (isPaused) return;
+
+        if (timeRemaining > 0) {
           timeRemaining--;
           updateTimer();
-
-          if (timeRemaining <= 0) {
-            const exercise = workout.exercises[currentExerciseIndex];
-            
-            if (isResting) {
-              if (currentSet < totalSets) {
-                currentSet++;
-                const setsElement = document.querySelector('.exercise-sets');
-                if (setsElement) {
-                  setsElement.textContent = `Set ${currentSet}/${totalSets}`;
-                }
-                timeRemaining = parseInt(exercise.duration);
-                isResting = false;
-              } else if (currentExerciseIndex < workout.exercises.length - 1) {
-                startExercise(currentExerciseIndex + 1);
-              } else {
-                endWorkout();
-              }
+        } else {
+          const exercise = workout.exercises[currentExerciseIndex];
+          
+          if (isResting) {
+            if (currentSet < totalSets) {
+              currentSet++;
+              isResting = false;
+              timeRemaining = exercise.duration;
+              updateExerciseDisplay(exercise);
+            } else if (currentExerciseIndex < workout.exercises.length - 1) {
+              startExercise(currentExerciseIndex + 1);
             } else {
-              startRest(exercise.rest);
+              completeWorkout();
             }
+          } else {
+            isResting = true;
+            timeRemaining = exercise.rest;
+            updateTimer();
           }
         }
       }, 1000);
+    }
+
+    function updateUpcomingExercises() {
+      const container = document.getElementById('upcomingExercises');
+      container.innerHTML = '';
+
+      // Show next 3 exercises
+      for (let i = currentExerciseIndex + 1; i < Math.min(currentExerciseIndex + 4, workout.exercises.length); i++) {
+        const exercise = workout.exercises[i];
+        const exerciseElement = document.createElement('div');
+        exerciseElement.className = `upcoming-exercise${i === currentExerciseIndex + 1 ? ' next' : ''}`;
+        exerciseElement.innerHTML = `
+          <h4>${exercise.name}</h4>
+          <p>${exercise.duration}s · ${exercise.phase}</p>
+        `;
+        container.appendChild(exerciseElement);
+      }
+    }
+
+    async function completeWorkout() {
+      clearInterval(timer);
+      try {
+        if (workout.id) {
+          await db.collection('workouts').doc(workout.id).update({
+            completed: true,
+            completedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        window.location.href = '../';
+      } catch (error) {
+        console.error('Error completing workout:', error);
+        window.location.href = '../';
+      }
     }
 
     function togglePause() {
@@ -534,14 +583,8 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
       if (currentExerciseIndex < workout.exercises.length - 1) {
         startExercise(currentExerciseIndex + 1);
       } else {
-        endWorkout();
+        completeWorkout();
       }
-    }
-
-    function endWorkout() {
-      clearInterval(timer);
-      // Save workout completion to Firebase here if needed
-      window.location.href = '../';
     }
 
     // Add event listeners

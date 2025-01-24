@@ -262,12 +262,29 @@
               Body Type: ${bodyDetails.bodyType}
               Body Fat: ${bodyDetails.fatComposition}%
 
+              Important Rules:
+              1. For ${length} minutes, generate:
+                 - 3 warm-up exercises (5 minutes total)
+                 - Main workout exercises (${length - 10} minutes)
+                 - 3 cool-down exercises (5 minutes total)
+              2. Calculate exercises based on time:
+                 - HIIT: 30-40s work + 20s rest per exercise
+                 - Strength: 45s work + 30s rest per exercise
+                 - Cardio: 60s work + 15s rest per exercise
+                 - Flexibility: 45s hold + 15s transition
+              3. Include at least 8-12 exercises for main workout
+              4. Add 3-5 specific tips for this workout
+              5. Add 3-5 safety precautions
+
               Return a JSON object with this exact structure:
               {
-                "name": "Workout name",
+                "name": "Creative workout name",
                 "type": "${type}",
                 "duration": "${length} minutes",
                 "difficulty": "beginner/intermediate/advanced",
+                "targetMuscleGroups": ["muscle1", "muscle2", ...],
+                "equipment": ["equipment1", "equipment2", ...],
+                "estimatedCalories": "XXX calories",
                 "sections": {
                   "warmUp": {
                     "duration": "5 minutes",
@@ -276,7 +293,7 @@
                         "name": "Exercise name",
                         "duration": 30,
                         "rest": 15,
-                        "instructions": "Detailed instructions",
+                        "instructions": "Detailed form instructions",
                         "targetMuscles": ["muscle1", "muscle2"]
                       }
                     ]
@@ -290,8 +307,9 @@
                         "rest": 20,
                         "sets": 3,
                         "reps": "12-15",
-                        "instructions": "Detailed instructions",
-                        "targetMuscles": ["muscle1", "muscle2"]
+                        "instructions": "Detailed form instructions",
+                        "targetMuscles": ["muscle1", "muscle2"],
+                        "equipment": "equipment name if needed"
                       }
                     ]
                   },
@@ -302,11 +320,22 @@
                         "name": "Exercise name",
                         "duration": 30,
                         "rest": 15,
-                        "instructions": "Detailed instructions"
+                        "instructions": "Detailed form instructions",
+                        "targetMuscles": ["muscle1", "muscle2"]
                       }
                     ]
                   }
-                }
+                },
+                "tips": [
+                  "Specific tip 1 for this workout type",
+                  "Specific tip 2 for this workout type",
+                  "Specific tip 3 for this workout type"
+                ],
+                "precautions": [
+                  "Safety precaution 1 for this workout",
+                  "Safety precaution 2 for this workout",
+                  "Safety precaution 3 for this workout"
+                ]
               }`
             }],
             temperature: 0.7
