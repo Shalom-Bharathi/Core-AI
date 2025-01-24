@@ -6,10 +6,32 @@
   <title>CoreAI - Workout Details</title>
   <link rel="stylesheet" href="../../style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://api.fontshare.com/v2/css?f[]=cal-sans@400,500,600&display=swap" rel="stylesheet">
+  
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-firestore.js"></script>
+
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
+      authDomain: "coreai-82c79.firebaseapp.com",
+      databaseURL: "https://coreai-82c79-default-rtdb.firebaseio.com",
+      projectId: "coreai-82c79",
+      storageBucket: "coreai-82c79.firebasestorage.app",
+      messagingSenderId: "97395011364",
+      appId: "1:97395011364:web:1e8f6a06fce409bfd80db1",
+      measurementId: "G-0J1RLMVEGC"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const auth = firebase.auth();
+  </script>
 </head>
 <body>
-  <div id="app" class="app">
+  <div class="app">
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-content">
@@ -40,239 +62,167 @@
 
     <!-- Main Content -->
     <main class="main-content">
-      <header class="header">
-        <div class="header-content">
-          <h1 id="workoutName">Workout Details</h1>
-          <p id="workoutDescription">Loading workout information...</p>
-        </div>
-        <div class="header-actions">
-          <button class="button-primary" id="startWorkoutBtn">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      <div class="workout-details">
+        <header class="details-header">
+          <div class="header-content">
+            <h1 id="workoutName">Loading workout...</h1>
+            <div class="workout-meta">
+              <span id="workoutType" class="workout-type"></span>
+              <span id="workoutDifficulty" class="workout-difficulty"></span>
+              <span id="workoutDuration" class="workout-duration"></span>
+            </div>
+          </div>
+          <button id="startWorkoutBtn" class="button-primary">
             Start Workout
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           </button>
-        </div>
-      </header>
+        </header>
 
-      <!-- Workout Overview -->
-      <div class="workout-overview">
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-header">
-              <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-            </div>
-            <h3>Duration</h3>
-            <p class="stat-value" id="workoutDuration">-- min</p>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-header">
-              <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
-              </div>
-            </div>
-            <h3>Calories</h3>
-            <p class="stat-value" id="estimatedCalories">-- cal</p>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-header">
-              <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-              </div>
-            </div>
-            <h3>Difficulty</h3>
-            <p class="stat-value" id="workoutDifficulty">--</p>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-header">
-              <div class="stat-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5 17.5 17.5"/><path d="M6.5 17.5 17.5 6.5"/></svg>
-              </div>
-            </div>
-            <h3>Equipment</h3>
-            <p class="stat-value" id="equipmentCount">-- items</p>
-          </div>
-        </div>
-
-        <!-- Workout Sections -->
         <div class="workout-sections">
-          <!-- Warm Up -->
-          <div class="section-card">
-            <h2>Warm Up</h2>
-            <div class="exercise-list" id="warmUpExercises">
-              <!-- Exercises will be populated by JavaScript -->
-            </div>
-          </div>
+          <!-- Warm Up Section -->
+          <section class="workout-section">
+            <h2>Warm Up <span class="section-duration" id="warmUpDuration"></span></h2>
+            <div id="warmUpExercises" class="exercise-list"></div>
+          </section>
 
-          <!-- Main Workout -->
-          <div class="section-card">
-            <h2>Main Workout</h2>
-            <div class="exercise-list" id="mainWorkoutExercises">
-              <!-- Exercises will be populated by JavaScript -->
-            </div>
-          </div>
+          <!-- Main Workout Section -->
+          <section class="workout-section">
+            <h2>Main Workout <span class="section-duration" id="mainWorkoutDuration"></span></h2>
+            <div id="mainWorkoutExercises" class="exercise-list"></div>
+          </section>
 
-          <!-- Cool Down -->
-          <div class="section-card">
-            <h2>Cool Down</h2>
-            <div class="exercise-list" id="coolDownExercises">
-              <!-- Exercises will be populated by JavaScript -->
-            </div>
-          </div>
-        </div>
+          <!-- Cool Down Section -->
+          <section class="workout-section">
+            <h2>Cool Down <span class="section-duration" id="coolDownDuration"></span></h2>
+            <div id="coolDownExercises" class="exercise-list"></div>
+          </section>
 
-        <!-- Tips and Precautions -->
-        <div class="tips-precautions">
-          <div class="section-card">
-            <h2>Tips & Precautions</h2>
-            <div class="tips-list" id="tipsAndPrecautions">
-              <!-- Tips will be populated by JavaScript -->
+          <!-- Tips and Precautions -->
+          <section class="workout-section">
+            <div class="tips-precautions">
+              <div class="tips">
+                <h3>Tips</h3>
+                <ul id="workoutTips"></ul>
+              </div>
+              <div class="precautions">
+                <h3>Precautions</h3>
+                <ul id="workoutPrecautions"></ul>
+              </div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
     </main>
   </div>
 
-  <style>
-    .workout-overview {
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
+  <script>
+    // Format time helper
+    function formatTime(seconds) {
+      const minutes = Math.floor(seconds / 60);
+      const remainingSeconds = seconds % 60;
+      return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
     }
 
-    .section-card {
-      background: var(--card);
-      padding: 1.5rem;
-      border-radius: 1rem;
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    // Load and display workout
+    async function loadWorkout() {
+      try {
+        // Check if we have a workout ID in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const workoutId = urlParams.get('id');
+        
+        let workout;
+        
+        if (workoutId) {
+          // Load from Firebase
+          const workoutDoc = await db.collection('workouts').doc(workoutId).get();
+          if (!workoutDoc.exists) {
+            throw new Error('Workout not found');
+          }
+          workout = {
+            id: workoutDoc.id,
+            ...workoutDoc.data()
+          };
+          localStorage.setItem('currentWorkout', JSON.stringify(workout));
+        } else {
+          // Load from localStorage
+          workout = JSON.parse(localStorage.getItem('currentWorkout'));
+          if (!workout) {
+            window.location.href = '../';
+            return;
+          }
+        }
+
+        // Update UI with workout details
+        document.getElementById('workoutName').textContent = workout.name;
+        document.getElementById('workoutType').textContent = workout.type;
+        document.getElementById('workoutDifficulty').textContent = workout.difficulty;
+        document.getElementById('workoutDuration').textContent = workout.duration;
+
+        // Display exercises for each section
+        displayExercises('warmUp', workout.sections.warmUp.exercises);
+        displayExercises('mainWorkout', workout.sections.mainWorkout.exercises);
+        displayExercises('coolDown', workout.sections.coolDown.exercises);
+
+        // Display section durations
+        document.getElementById('warmUpDuration').textContent = workout.sections.warmUp.duration;
+        document.getElementById('mainWorkoutDuration').textContent = workout.sections.mainWorkout.duration;
+        document.getElementById('coolDownDuration').textContent = workout.sections.coolDown.duration;
+
+        // Display tips and precautions
+        if (workout.tips) {
+          const tipsContainer = document.getElementById('workoutTips');
+          workout.tips.forEach(tip => {
+            const li = document.createElement('li');
+            li.textContent = tip;
+            tipsContainer.appendChild(li);
+          });
+        }
+
+        if (workout.precautions) {
+          const precautionsContainer = document.getElementById('workoutPrecautions');
+          workout.precautions.forEach(precaution => {
+            const li = document.createElement('li');
+            li.textContent = precaution;
+            precautionsContainer.appendChild(li);
+          });
+        }
+      } catch (error) {
+        console.error('Error loading workout:', error);
+        alert('Error loading workout details');
+      }
     }
 
-    .exercise-list {
-      margin-top: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .exercise-item {
-      padding: 1rem;
-      background: var(--background);
-      border-radius: 0.75rem;
-      transition: all 0.3s ease;
-    }
-
-    .exercise-item:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-    }
-
-    .exercise-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.5rem;
-    }
-
-    .exercise-name {
-      font-weight: 600;
-      color: var(--foreground);
-    }
-
-    .exercise-details {
-      color: var(--muted);
-      font-size: 0.875rem;
-    }
-
-    .exercise-description {
-      margin-top: 0.5rem;
-      color: var(--muted);
-      font-size: 0.875rem;
-    }
-
-    .tips-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-
-    .tip-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.5rem;
-      color: var(--muted);
-      font-size: 0.875rem;
-    }
-
-    .tip-item svg {
-      width: 16px;
-      height: 16px;
-      margin-top: 0.25rem;
-      flex-shrink: 0;
-    }
-  </style>
-
-  <script type="module">
-    import { handleSignOut } from '../../auth.js';
-
-    // Function to populate workout details
-    function populateWorkoutDetails(workout) {
-      // Update header
-      document.getElementById('workoutName').textContent = workout.name;
-      document.getElementById('workoutDescription').textContent = 
-        `${workout.type.charAt(0).toUpperCase() + workout.type.slice(1)} workout targeting ${workout.targetMuscleGroups.join(', ')}`;
-
-      // Update stats
-      document.getElementById('workoutDuration').textContent = workout.duration;
-      document.getElementById('estimatedCalories').textContent = workout.estimatedCalories;
-      document.getElementById('workoutDifficulty').textContent = workout.difficulty;
-      document.getElementById('equipmentCount').textContent = `${workout.equipment.length} items`;
-
-      // Populate exercises
-      populateExerciseSection('warmUpExercises', workout.sections.warmUp.exercises);
-      populateExerciseSection('mainWorkoutExercises', workout.sections.mainWorkout.exercises);
-      populateExerciseSection('coolDownExercises', workout.sections.coolDown.exercises);
-
-      // Populate tips and precautions
-      const tipsContainer = document.getElementById('tipsAndPrecautions');
-      tipsContainer.innerHTML = '';
-      
-      [...workout.tips, ...workout.precautions].forEach(tip => {
-        const tipElement = document.createElement('div');
-        tipElement.className = 'tip-item';
-        tipElement.innerHTML = `
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="16" x2="12" y2="12"/>
-            <line x1="12" y1="8" x2="12.01" y2="8"/>
-          </svg>
-          <span>${tip}</span>
-        `;
-        tipsContainer.appendChild(tipElement);
-      });
-    }
-
-    function populateExerciseSection(containerId, exercises) {
-      const container = document.getElementById(containerId);
+    function displayExercises(sectionId, exercises) {
+      const container = document.getElementById(`${sectionId}Exercises`);
       container.innerHTML = '';
 
-      exercises.forEach(exercise => {
+      exercises.forEach((exercise, index) => {
         const exerciseElement = document.createElement('div');
-        exerciseElement.className = 'exercise-item';
+        exerciseElement.className = 'exercise-card';
         
-        const details = exercise.sets && exercise.reps
-          ? `${exercise.sets} sets × ${exercise.reps} | Rest: ${exercise.rest}`
-          : exercise.duration;
+        const details = [];
+        if (exercise.duration) details.push(`${exercise.duration}s`);
+        if (exercise.rest) details.push(`${exercise.rest}s rest`);
+        if (exercise.sets) details.push(`${exercise.sets} sets`);
+        if (exercise.reps) details.push(exercise.reps);
 
         exerciseElement.innerHTML = `
           <div class="exercise-header">
-            <span class="exercise-name">${exercise.name}</span>
-            <span class="exercise-details">${details}</span>
+            <span class="exercise-number">${index + 1}</span>
+            <div class="exercise-info">
+              <h3 class="exercise-name">${exercise.name}</h3>
+              <p class="exercise-meta">${details.join(' · ')}</p>
+            </div>
           </div>
-          <div class="exercise-description">${exercise.description}</div>
+          <div class="exercise-details">
+            <p class="exercise-instructions">${exercise.instructions}</p>
+            ${exercise.targetMuscles ? `
+              <div class="target-muscles">
+                <span class="label">Target Muscles:</span>
+                <span class="muscles">${exercise.targetMuscles.join(', ')}</span>
+              </div>
+            ` : ''}
+          </div>
         `;
         
         container.appendChild(exerciseElement);
@@ -281,20 +231,162 @@
 
     // Add event listeners
     document.addEventListener('DOMContentLoaded', () => {
-      document.getElementById('logoutButton').addEventListener('click', handleSignOut);
-      
-      // Get workout data from URL parameters or localStorage
-      const workoutData = JSON.parse(localStorage.getItem('currentWorkout'));
-      if (workoutData) {
-        populateWorkoutDetails(workoutData);
-      }
+      auth.onAuthStateChanged(user => {
+        if (user) {
+          loadWorkout();
+        } else {
+          window.location.href = '../../login.html';
+        }
+      });
 
       document.getElementById('startWorkoutBtn').addEventListener('click', () => {
-        // The workout data is already in localStorage
         window.location.href = '../workout-sessions/';
+      });
+
+      document.getElementById('logoutButton')?.addEventListener('click', () => {
+        auth.signOut().then(() => {
+          window.location.href = '../../login.html';
+        });
       });
     });
   </script>
+
+  <style>
+    .workout-details {
+      padding: 2rem;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .details-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .workout-meta {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .workout-type,
+    .workout-difficulty,
+    .workout-duration {
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      background: var(--background);
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .workout-sections {
+      display: grid;
+      gap: 2rem;
+    }
+
+    .workout-section {
+      background: var(--card);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .exercise-list {
+      display: grid;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .exercise-card {
+      background: var(--background);
+      border-radius: 0.75rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .exercise-header {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .exercise-number {
+      width: 2rem;
+      height: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--primary);
+      color: white;
+      border-radius: 0.5rem;
+      font-weight: 500;
+    }
+
+    .exercise-info {
+      flex: 1;
+    }
+
+    .exercise-name {
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .exercise-meta {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .exercise-instructions {
+      color: var(--text);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    .target-muscles {
+      font-size: 0.875rem;
+    }
+
+    .target-muscles .label {
+      color: var(--muted);
+      margin-right: 0.5rem;
+    }
+
+    .tips-precautions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+
+    .tips ul,
+    .precautions ul {
+      margin-top: 1rem;
+      list-style: none;
+      padding: 0;
+    }
+
+    .tips li,
+    .precautions li {
+      padding: 0.5rem 0;
+      color: var(--text);
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .tips li::before,
+    .precautions li::before {
+      content: "•";
+      color: var(--primary);
+      margin-right: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .tips-precautions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </body>
 </html>
 
