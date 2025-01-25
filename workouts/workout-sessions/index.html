@@ -40,164 +40,265 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
 </head>
 
 <body>
-  <div class="workout-session">
-    <div class="session-header">
-      <div class="workout-info">
-        <h1 id="workoutName">Loading workout...</h1>
-        <div class="workout-progress">
-          <span id="exerciseCount">0/0</span>
-          <span id="currentPhase">Warm Up</span>
+  <div class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-content">
+        <div class="logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span class="logo-text">CoreAI</span>
         </div>
+        
+        <nav class="nav-links">
+          <a href="../../index.html" class="nav-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="../" class="nav-link active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span>Workouts</span>
+          </a>
+        </nav>
       </div>
-      
-      <div class="timer-container">
-        <div class="timer-ring">
-          <svg class="progress-ring" width="120" height="120">
-            <circle class="progress-ring-circle" stroke="var(--primary)" stroke-width="8" fill="transparent" r="52" cx="60" cy="60"/>
-          </svg>
-          <div class="timer-display">
-            <span id="timeRemaining">00:00</span>
-            <span id="timerPhase" class="timer-phase">Exercise</span>
+
+      <button class="logout-button nav-link" id="logoutButton">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
+        <span>Logout</span>
+      </button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content workout-session">
+      <div class="session-container">
+        <!-- Left Section -->
+        <div class="workout-section">
+          <header class="session-header">
+            <div class="header-content">
+              <h1 id="workoutName">Loading workout...</h1>
+              <p id="workoutDescription" class="text-muted">Get ready to start your session</p>
+            </div>
+            <div class="workout-progress">
+              <div class="progress-stat">
+                <span class="stat-label">Exercise</span>
+                <span id="exerciseCount" class="stat-value">0/0</span>
+              </div>
+              <div class="progress-stat">
+                <span class="stat-label">Phase</span>
+                <span id="currentPhase" class="stat-value">Warm Up</span>
+              </div>
+            </div>
+          </header>
+
+          <div class="exercise-display">
+            <div class="timer-section">
+              <div class="timer-ring">
+                <svg class="progress-ring" width="200" height="200">
+                  <circle class="progress-ring-circle" stroke="var(--primary)" stroke-width="8" fill="transparent" r="90" cx="100" cy="100"/>
+                </svg>
+                <div class="timer-display">
+                  <span id="timeRemaining">00:00</span>
+                  <span id="timerPhase" class="timer-phase">Exercise</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="exercise-info">
+              <div id="currentExercise" class="exercise-card">
+                <h2 class="exercise-name">Loading...</h2>
+                <p class="exercise-instructions">Preparing your workout...</p>
+                <div class="exercise-meta">
+                  <span class="exercise-sets"></span>
+                  <span class="exercise-equipment"></span>
+                </div>
+              </div>
+            </div>
+
+            <div class="control-buttons">
+              <button id="previousButton" class="button-circle secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+              </button>
+              <button id="pauseButton" class="button-circle primary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              </button>
+              <button id="skipButton" class="button-circle secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Section -->
+        <div class="workout-sidebar">
+          <div class="upcoming-exercises">
+            <h3>Coming Up Next</h3>
+            <div id="upcomingExercises" class="exercise-list">
+              <!-- Upcoming exercises will be populated here -->
+            </div>
+          </div>
+
+          <div class="workout-stats">
+            <h3>Workout Stats</h3>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <span class="stat-label">Time Left</span>
+                <span id="totalTimeLeft" class="stat-value">--:--</span>
+              </div>
+              <div class="stat-card">
+                <div class="stat-icon">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                </div>
+                <span class="stat-label">Calories</span>
+                <span id="caloriesBurned" class="stat-value">0</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      <button class="voice-assistant">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
-          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-          <line x1="12" y1="19" x2="12" y2="22"/>
-        </svg>
-      </button>
-    </div>
-
-    <div class="exercise-container">
-      <div class="current-exercise" id="currentExercise">
-        <!-- Exercise info will be populated by JavaScript -->
-      </div>
-
-      <div class="exercise-controls">
-        <button id="skipButton" class="button-circle secondary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="5 4 15 12 5 20 5 4"/>
-            <line x1="19" y1="5" x2="19" y2="19"/>
-          </svg>
-        </button>
-        <button id="pauseButton" class="button-circle primary">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="6" y="4" width="4" height="16"/>
-            <rect x="14" y="4" width="4" height="16"/>
-          </svg>
-        </button>
-      </div>
-    </div>
+    </main>
   </div>
 
   <style>
     .workout-session {
+      padding: 0;
+      background: var(--background);
       height: 100vh;
+      overflow: hidden;
+    }
+
+    .session-container {
+      display: grid;
+      grid-template-columns: 1fr 350px;
+      height: 100vh;
+      gap: 1px;
+      background: var(--border);
+    }
+
+    .workout-section {
       background: var(--background);
       padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
     }
 
     .session-header {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
-      padding: 1rem;
-      background: var(--card);
-      border-radius: 1rem;
-      border: 1px solid var(--border);
-    }
-
-    .workout-info h1 {
-      margin: 0;
-      font-size: 1.5rem;
+      align-items: flex-start;
+      gap: 2rem;
     }
 
     .workout-progress {
-      margin-top: 0.5rem;
-      color: var(--muted);
-      font-size: 0.875rem;
+      display: flex;
+      gap: 1.5rem;
     }
 
-    .timer-container {
+    .progress-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .exercise-display {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      padding: 2rem;
+      background: var(--card);
+      border-radius: 1rem;
+    }
+
+    .timer-section {
       position: relative;
+      width: 200px;
+      height: 200px;
     }
 
     .timer-ring {
       position: relative;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+    }
+
+    .progress-ring-circle {
+      transition: stroke-dashoffset 0.35s;
+      transform: rotate(-90deg);
+      transform-origin: 50% 50%;
     }
 
     .timer-display {
       position: absolute;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .exercise-info {
+      width: 100%;
       text-align: center;
     }
 
-    #timeRemaining {
+    .exercise-card {
+      padding: 2rem;
+      background: var(--background);
+      border-radius: 1rem;
+      box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+    }
+
+    .exercise-name {
       font-size: 1.5rem;
       font-weight: 600;
+      margin-bottom: 1rem;
     }
 
-    .timer-phase {
-      font-size: 0.75rem;
+    .exercise-instructions {
       color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1rem;
     }
 
-    .voice-assistant {
-      background: var(--card);
-      border: 1px solid var(--border);
-      color: var(--primary);
-      width: 48px;
-      height: 48px;
-      border-radius: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .voice-assistant:hover {
-      background: var(--primary-light);
-      transform: scale(1.05);
-    }
-
-    .exercise-container {
-      background: var(--card);
-      border-radius: 1rem;
-      padding: 2rem;
-      border: 1px solid var(--border);
-    }
-
-    .current-exercise {
-      margin-bottom: 2rem;
-    }
-
-    .exercise-controls {
+    .exercise-meta {
       display: flex;
       justify-content: center;
       gap: 1rem;
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .control-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: auto;
     }
 
     .button-circle {
-      width: 64px;
-      height: 64px;
-      border-radius: 32px;
-      border: none;
+      width: 3.5rem;
+      height: 3.5rem;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
+      border: none;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all 0.2s;
     }
 
     .button-circle.primary {
@@ -215,9 +316,66 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
       transform: scale(1.05);
     }
 
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    .workout-sidebar {
+      background: var(--background);
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+      border-left: 1px solid var(--border);
+    }
+
+    .upcoming-exercises {
+      flex: 1;
+    }
+
+    .exercise-list {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .upcoming-exercise {
+      padding: 1rem;
+      background: var(--card);
+      border-radius: 0.75rem;
+      border: 1px solid var(--border);
+    }
+
+    .upcoming-exercise.next {
+      border-color: var(--primary);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .stat-card {
+      padding: 1rem;
+      background: var(--card);
+      border-radius: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .stat-icon {
+      color: var(--primary);
+    }
+
+    @media (max-width: 1024px) {
+      .session-container {
+        grid-template-columns: 1fr;
+      }
+
+      .workout-sidebar {
+        display: none;
+      }
     }
   </style>
 
@@ -343,7 +501,7 @@ unsubscribex = thingsRefx.onSnapshot(querySnapshot => {
       const exercise = workout.exercises[currentExerciseIndex];
       const totalTime = isResting ? exercise.rest : exercise.duration;
       const progress = (timeRemaining / totalTime) * 100;
-      const circumference = 2 * Math.PI * 52;
+      const circumference = 2 * Math.PI * 90;
       const offset = circumference - (progress / 100) * circumference;
       circle.style.strokeDasharray = `${circumference} ${circumference}`;
       circle.style.strokeDashoffset = offset;
