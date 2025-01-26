@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
+  <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+  <title>CoreAI Diet Generator</title>
+  <link rel="stylesheet" href="./style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://api.fontshare.com/v2/css?f[]=cal-sans@400,500,600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script type="module" src="./app.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-firestore.js"></script>
+  <script src="https://aka.ms/csspeech/jsbrowserpackageraw"></script>
+
+  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
+      authDomain: "coreai-82c79.firebaseapp.com",
+      databaseURL: "https://coreai-82c79-default-rtdb.firebaseio.com",
+      projectId: "coreai-82c79",
+      storageBucket: "coreai-82c79.firebasestorage.app",
+      messagingSenderId: "97395011364",
+      appId: "1:97395011364:web:1e8f6a06fce409bfd80db1",
+      measurementId: "G-0J1RLMVEGC"
+    };
+    
+    firebase.initializeApp(firebaseConfig);
+  </script>
+</head>
+<body>
+  <div id="app" class="app">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-content">
+        <div class="logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span class="logo-text">CoreAI</span>
+        </div>
+        
+        <nav class="nav-links">
+          <a href="#" class="nav-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="#" class="nav-link active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+            <span>Generate Diet</span>
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="diet-dashboard">
+        <!-- Overview Section -->
+        <div class="overview-section">
+          <div class="plan-header">
+            <h1 id="planName">Loading your diet plan...</h1>
+            <p id="planOverview" class="overview-text"></p>
+          </div>
+          
+          <div class="stats-grid">
+            <div class="stat-card">
+              <h3>Daily Calories</h3>
+              <div class="stat-value" id="dailyCalories">-</div>
+            </div>
+            <div class="stat-card">
+              <h3>Water Intake</h3>
+              <div class="stat-value" id="waterIntake">-</div>
+            </div>
+            <div class="stat-card">
+              <h3>Exercise</h3>
+              <div class="stat-value" id="exerciseFreq">-</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Macro Split Section -->
+        <div class="macro-section">
+          <h2>Macro Split</h2>
+          <div class="macro-chart" id="macroChart"></div>
+        </div>
+
+        <!-- Meal Schedule -->
+        <div class="meal-schedule">
+          <h2>Today's Meals</h2>
+          <div class="meal-cards">
+            <div class="meal-card" id="breakfastCard">
+              <h3>Breakfast</h3>
+              <div class="meal-time" id="breakfastTime"></div>
+              <div class="meal-calories" id="breakfastCal"></div>
+              <div class="meal-suggestions" id="breakfastSuggestions"></div>
+            </div>
+            <!-- Repeat for lunch, dinner, snacks -->
+          </div>
+        </div>
+
+        <!-- Weekly Schedule -->
+        <div class="weekly-schedule">
+          <h2>Weekly Meal Plan</h2>
+          <div class="schedule-calendar" id="weeklySchedule"></div>
+        </div>
+
+        <!-- Food Lists -->
+        <div class="food-lists">
+          <div class="include-foods">
+            <h2>Foods to Include</h2>
+            <ul id="includeFoods"></ul>
+          </div>
+          <div class="avoid-foods">
+            <h2>Foods to Avoid</h2>
+            <ul id="avoidFoods"></ul>
+          </div>
+        </div>
+
+        <!-- Tips and Recommendations -->
+        <div class="tips-section">
+          <h2>Tips & Recommendations</h2>
+          <div class="tips-grid" id="tipsGrid"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add Chart.js for macro chart -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>
