@@ -1,4 +1,4 @@
-// Remove Firebase initialization and just get the db reference
+// Get db reference without initializing Firebase again
 const db = firebase.firestore();
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -28,7 +28,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (generateDietLink) {
     generateDietLink.addEventListener('click', (e) => {
       e.preventDefault();
-      // Clear existing diet plan before redirecting
       const user = firebase.auth().currentUser;
       if (user) {
         db.collection('dietPlans').doc(user.uid).delete()
@@ -45,6 +44,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initializeDashboard(plan) {
+  console.log('Initializing dashboard with plan:', plan); // Debug log
+
   // Update overview section
   document.getElementById('planName').textContent = plan.planName || 'Your Diet Plan';
   document.getElementById('planOverview').textContent = plan.overview || '';
@@ -73,12 +74,18 @@ function initializeDashboard(plan) {
 
 function initializeMacroChart(macros) {
   const ctx = document.getElementById('macroChart').getContext('2d');
+  
+  // Convert percentage strings to numbers
+  const proteinValue = parseInt(macros.protein) || 0;
+  const carbsValue = parseInt(macros.carbs) || 0;
+  const fatsValue = parseInt(macros.fats) || 0;
+
   new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: ['Protein', 'Carbs', 'Fats'],
       datasets: [{
-        data: [macros.protein, macros.carbs, macros.fats],
+        data: [proteinValue, carbsValue, fatsValue],
         backgroundColor: ['#4F46E5', '#10B981', '#F59E0B']
       }]
     },
@@ -95,6 +102,8 @@ function initializeMacroChart(macros) {
 
 function updateMealCards(mealStructure) {
   const mealCardsContainer = document.querySelector('.meal-cards');
+  if (!mealCardsContainer) return;
+  
   mealCardsContainer.innerHTML = ''; // Clear existing cards
 
   Object.entries(mealStructure).forEach(([meal, data]) => {
@@ -118,6 +127,8 @@ function updateMealCards(mealStructure) {
 
 function updateWeeklySchedule(weeklySchedule) {
   const scheduleContainer = document.getElementById('weeklySchedule');
+  if (!scheduleContainer) return;
+
   scheduleContainer.innerHTML = `
     <div class="schedule-grid">
       ${Object.entries(weeklySchedule).map(([day, meals]) => `
