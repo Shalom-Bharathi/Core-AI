@@ -1,5 +1,4 @@
-// Get db reference without initializing Firebase again
-const db = firebase.firestore();
+// db is already available from firebase-config.js
 
 document.addEventListener('DOMContentLoaded', () => {
   // Check authentication and load diet plan
