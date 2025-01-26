@@ -519,18 +519,32 @@ Lifestyle and Daily Schedule:
 ${userResponses.lifestyle}
 
 Please provide a detailed diet plan that includes:
-1. Daily caloric needs and macronutrient breakdown
+1. Daily caloric needs and precise macronutrient breakdown (protein, carbs, fat percentages)
 2. Meal timing recommendations based on their schedule
-3. Specific food suggestions for each meal
-4. Portion control guidelines
-5. Healthy snack options
-6. Tips for meal prep and planning
-7. Strategies for dining out while maintaining the diet
-8. Progress tracking metrics
-9. Potential challenges and solutions
-10. Weekly meal plan template
+3. Specific food suggestions for each meal with portion sizes in grams
+4. Weekly meal plan template with alternatives
+5. Approved food list categorized by:
+   - Proteins
+   - Carbohydrates
+   - Healthy Fats
+   - Vegetables
+   - Fruits
+   - Snacks
+6. Foods to avoid or limit
+7. Meal prep guidelines
+8. Progress tracking metrics:
+   - Weekly weigh-in targets
+   - Body measurements
+   - Progress photos schedule
+   - Energy levels
+9. Specific goals:
+   - Short term (2 weeks)
+   - Medium term (6 weeks)
+   - Long term (12 weeks)
+10. Supplement recommendations if needed
 
-Format the response in clear sections using markdown.`;
+Format the response in clear sections using markdown with specific headings for each category.
+Include specific portion sizes and measurements for accurate tracking.`;
 
   try {
     showLoadingPopup('Generating your personalized diet plan...');
@@ -828,4 +842,323 @@ document.addEventListener('DOMContentLoaded', () => {
 const link = document.createElement('link');
 link.rel = 'icon';
 link.href = 'data:;base64,iVBORw0KGgo='; // Empty favicon
+document.head.appendChild(link);
+
+// Global variables
+let currentUser = null;
+let userDietPlan = null;
+let nutritionChart = null;
+let macrosChart = null;
+
+// Load user's diet plan from Firestore
+async function loadUserDietPlan() {
+  try {
+    const dietSnapshot = await db.collection('diets')
+      .where('userId', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    if (dietSnapshot.empty) {
+      window.location.href = '../generate-diets/index.html';
+      return;
+    }
+
+    userDietPlan = dietSnapshot.docs[0].data();
+    displayDietPlanPreview();
+  } catch (error) {
+    console.error('Error loading diet plan:', error);
+  }
+}
+
+// Initialize Charts
+function initializeCharts() {
+  // Nutrition Overview Chart
+  const nutritionCtx = document.getElementById('nutritionChart').getContext('2d');
+  nutritionChart = new Chart(nutritionCtx, {
+    type: 'line',
+    data: {
+      labels: getLast7Days(),
+      datasets: [{
+        label: 'Calories Consumed',
+        data: [2100, 1950, 2200, 1800, 2300, 2000, 1900],
+        borderColor: '#4f46e5',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+  });
+
+  // Macronutrients Chart
+  const macrosCtx = document.getElementById('macrosChart').getContext('2d');
+  macrosChart = new Chart(macrosCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Protein', 'Carbs', 'Fat'],
+      datasets: [{
+        data: [30, 40, 30],
+        backgroundColor: ['#4f46e5', '#22c55e', '#f59e0b']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+// Initialize Event Listeners
+function initializeEventListeners() {
+  // Log Meal Button
+  document.getElementById('logMealBtn').addEventListener('click', () => {
+    document.getElementById('logMealModal').style.display = 'flex';
+  });
+
+  // View Full Plan Button
+  document.getElementById('viewFullPlanBtn').addEventListener('click', () => {
+    document.getElementById('fullDietPlanModal').style.display = 'flex';
+    document.getElementById('fullDietPlan').innerHTML = marked.parse(userDietPlan.plan);
+  });
+
+  // Meal Log Form
+  document.getElementById('mealLogForm').addEventListener('submit', handleMealLog);
+
+  // Meal Photo Input
+  document.getElementById('mealPhotoInput').addEventListener('change', handleMealPhoto);
+}
+
+// Handle Meal Logging
+async function handleMealLog(e) {
+  e.preventDefault();
+
+  const mealData = {
+    userId: currentUser.uid,
+    type: document.getElementById('mealType').value,
+    foodItems: document.getElementById('foodItems').value,
+    calories: parseInt(document.getElementById('calories').value),
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    await db.collection('mealLogs').add(mealData);
+    await updateUserStats(mealData.calories);
+    closeModal('logMealModal');
+    updateDashboardStats();
+  } catch (error) {
+    console.error('Error logging meal:', error);
+  }
+}
+
+// Handle Meal Photo Analysis
+async function handleMealPhoto(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    // First, upload the image and get its URL
+    const imageUrl = await uploadImage(file);
+    
+    // Then analyze the image using GPT-4 Vision
+    const analysis = await analyzeMealImage(imageUrl);
+    
+    // Display the analysis results
+    displayMealAnalysis(analysis);
+  } catch (error) {
+    console.error('Error analyzing meal photo:', error);
+  }
+}
+
+// Upload image to storage
+async function uploadImage(file) {
+  const storage = firebase.storage();
+  const storageRef = storage.ref();
+  const fileRef = storageRef.child(`meal-photos/${currentUser.uid}/${Date.now()}-${file.name}`);
+  
+  await fileRef.put(file);
+  return await fileRef.getDownloadURL();
+}
+
+// Analyze meal image using GPT-4 Vision
+async function analyzeMealImage(imageUrl) {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify({
+      model: 'gpt-4-vision-preview',
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'text',
+            text: 'Analyze this meal image and provide: 1) Estimated calories 2) Macronutrient breakdown 3) Whether it fits the user\'s diet plan 4) Suggestions for improvement'
+          },
+          {
+            type: 'image_url',
+            image_url: imageUrl
+          }
+        ]
+      }],
+      max_tokens: 500
+    })
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+// Display meal analysis
+function displayMealAnalysis(analysis) {
+  const analysisContainer = document.getElementById('mealAnalysis');
+  analysisContainer.innerHTML = `
+    <div class="analysis-results">
+      <h4>Meal Analysis</h4>
+      <div class="analysis-content">${marked.parse(analysis)}</div>
+    </div>
+  `;
+}
+
+// Update user stats
+async function updateUserStats(calories) {
+  const userRef = db.collection('users').doc(currentUser.uid);
+  await userRef.update({
+    totalCalories: firebase.firestore.FieldValue.increment(calories),
+    mealsLogged: firebase.firestore.FieldValue.increment(1)
+  });
+}
+
+// Update Dashboard Stats
+async function updateDashboardStats() {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get today's meals
+    const mealsSnapshot = await db.collection('mealLogs')
+      .where('userId', '==', currentUser.uid)
+      .where('timestamp', '>=', today)
+      .get();
+
+    let dailyCalories = 0;
+    mealsSnapshot.forEach(doc => {
+      dailyCalories += doc.data().calories;
+    });
+
+    // Update stats
+    document.getElementById('dailyCalories').textContent = 
+      `${dailyCalories}/${userDietPlan.dailyCalories}`;
+    document.getElementById('mealsLogged').textContent = 
+      mealsSnapshot.size;
+    
+    // Update next meal time
+    updateNextMealTime();
+    
+    // Update charts
+    updateCharts();
+  } catch (error) {
+    console.error('Error updating stats:', error);
+  }
+}
+
+// Update Next Meal Time
+function updateNextMealTime() {
+  const now = new Date();
+  const hours = now.getHours();
+  
+  let nextMeal = '';
+  if (hours < 9) nextMeal = '9:00 AM (Breakfast)';
+  else if (hours < 13) nextMeal = '1:00 PM (Lunch)';
+  else if (hours < 19) nextMeal = '7:00 PM (Dinner)';
+  else nextMeal = '9:00 AM (Breakfast)';
+
+  document.getElementById('nextMeal').textContent = nextMeal;
+}
+
+// Update Charts with real data
+async function updateCharts() {
+  const last7Days = getLast7Days();
+  const caloriesData = await getCaloriesData(last7Days);
+  
+  nutritionChart.data.datasets[0].data = caloriesData;
+  nutritionChart.update();
+
+  macrosChart.data.datasets[0].data = [
+    userDietPlan.macros.protein,
+    userDietPlan.macros.carbs,
+    userDietPlan.macros.fat
+  ];
+  macrosChart.update();
+}
+
+// Get calories data for the last 7 days
+async function getCaloriesData(dates) {
+  const caloriesData = [];
+  
+  for (const date of dates) {
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    const snapshot = await db.collection('mealLogs')
+      .where('userId', '==', currentUser.uid)
+      .where('timestamp', '>=', startDate)
+      .where('timestamp', '<=', endDate)
+      .get();
+
+    let dailyCalories = 0;
+    snapshot.forEach(doc => {
+      dailyCalories += doc.data().calories;
+    });
+    
+    caloriesData.push(dailyCalories);
+  }
+
+  return caloriesData;
+}
+
+// Display Diet Plan Preview
+function displayDietPlanPreview() {
+  const previewElement = document.getElementById('dietPlanPreview');
+  const fullPlanElement = document.getElementById('fullDietPlan');
+  
+  // Create a summary version for the preview
+  const summary = userDietPlan.plan.split('\n').slice(0, 5).join('\n') + '\n\n...';
+  
+  previewElement.innerHTML = marked.parse(summary);
+  fullPlanElement.innerHTML = marked.parse(userDietPlan.plan);
+}
+
+// Utility Functions
+function getLast7Days() {
+  const dates = [];
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    dates.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+  }
+  return dates;
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = 'none';
+}
+
+// Add favicon to prevent 404
+const link = document.createElement('link');
+link.rel = 'icon';
+link.href = 'data:;base64,iVBORw0KGgo=';
 document.head.appendChild(link); 
