@@ -491,31 +491,32 @@ async function generateDietPlan() {
       {
         "planName": "Name of the personalized diet plan",
         "overview": "Brief overview of the diet plan",
-        "dailyCalories": "Estimated daily calorie intake",
-        "macroSplit": {
-          "protein": "percentage",
-          "carbs": "percentage",
-          "fats": "percentage"
+        "dailyCalories": 2000,
+        "macros": {
+          "protein": 150,
+          "carbs": 250,
+          "fats": 70
         },
+        "preferences": "List of dietary preferences and restrictions",
         "mealStructure": {
           "breakfast": {
             "timing": "Recommended timing",
-            "calories": "Calories for this meal",
+            "calories": 500,
             "suggestions": ["3-4 meal suggestions"]
           },
           "lunch": {
             "timing": "Recommended timing",
-            "calories": "Calories for this meal",
+            "calories": 700,
             "suggestions": ["3-4 meal suggestions"]
           },
           "dinner": {
             "timing": "Recommended timing",
-            "calories": "Calories for this meal",
+            "calories": 600,
             "suggestions": ["3-4 meal suggestions"]
           },
           "snacks": {
             "timing": "Recommended timing",
-            "calories": "Calories per snack",
+            "calories": 200,
             "suggestions": ["3-4 snack suggestions"]
           }
         },
@@ -523,24 +524,15 @@ async function generateDietPlan() {
           "include": ["List of recommended foods"],
           "avoid": ["List of foods to avoid"]
         },
-        "weeklySchedule": {
-          "monday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "tuesday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "wednesday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "thursday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "friday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "saturday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "sunday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" }
-        },
         "tips": ["List of 5-6 important tips and recommendations"],
-        "waterIntake": "Daily water intake recommendation in liters",
-        "supplements": ["Optional list of recommended supplements"],
-        "exerciseRecommendations": {
-          "type": "Recommended exercise type",
-          "frequency": "Weekly frequency",
-          "duration": "Minutes per session"
-        }
+        "waterIntake": 2.5,
+        "supplements": ["Optional list of recommended supplements"]
       }
+
+      Make sure all numeric values (calories, macros, etc.) are actual numbers, not strings.
+      The macros should be in grams and should align with the daily calorie goal.
+      The meal calories should sum up to the daily calorie goal.
+      Base the recommendations on the user's responses and current fitness science.
     `;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -576,9 +568,10 @@ async function generateDietPlan() {
       throw new Error('User not authenticated');
     }
 
-    await db.collection('dietPlans').doc(user.uid).set({
-      plan: dietPlan,
+    await db.collection('diets').doc(user.uid).set({
+      ...dietPlan,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userId: user.uid,
       responses: userResponses
     });
 
@@ -796,7 +789,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Check if user already has a diet plan
   firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
-      const doc = await db.collection('dietPlans').doc(user.uid).get();
+      const doc = await db.collection('diets').doc(user.uid).get();
       if (doc.exists) {
         // User has a diet plan, redirect to dashboard
         window.location.replace('../diet-home/index.html');

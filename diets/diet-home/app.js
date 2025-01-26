@@ -1,373 +1,371 @@
-// db is already available from firebase-config.js
+// Initialize Firebase
+const firebaseConfig = {
+  apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
+  authDomain: "coreai-82c79.firebaseapp.com",
+  databaseURL: "https://coreai-82c79-default-rtdb.firebaseio.com",
+  projectId: "coreai-82c79",
+  storageBucket: "coreai-82c79.firebasestorage.app",
+  messagingSenderId: "97395011364",
+  appId: "1:97395011364:web:1e8f6a06fce409bfd80db1",
+  measurementId: "G-0J1RLMVEGC"
+};
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Check authentication and load diet plan
-  firebase.auth().onAuthStateChanged(async (user) => {
-    if (!user) {
-      window.location.replace('../generate-diets/index.html');
-      return;
-    }
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+const storage = firebase.storage();
 
-    try {
-      const doc = await db.collection('dietPlans').doc(user.uid).get();
-      if (!doc.exists) {
-        window.location.replace('../generate-diets/index.html');
-        return;
-      }
+// Global variables
+let currentUser = null;
+let userDiet = null;
+let nutritionChart = null;
+let progressChart = null;
 
-      const dietPlan = doc.data().plan;
-      initializeDashboard(dietPlan);
-    } catch (error) {
-      console.error('Error loading diet plan:', error);
-    }
-  });
+// DOM Elements
+const userNameElement = document.querySelector('.user-name');
+const logoutBtn = document.querySelector('.logout-btn');
+const mealLogForm = document.getElementById('meal-log-form');
+const mealList = document.querySelector('.meal-list');
+const uploadArea = document.getElementById('upload-area');
+const mealImageInput = document.getElementById('meal-image-input');
+const analysisResults = document.querySelector('.analysis-results');
 
-  // Update navigation links
-  const generateDietLink = document.querySelector('a[href="#"].nav-link:not(.active)');
-  if (generateDietLink) {
-    generateDietLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      const user = firebase.auth().currentUser;
-      if (user) {
-        db.collection('dietPlans').doc(user.uid).delete()
-          .then(() => {
-            window.location.href = '../generate-diets/index.html';
-          })
-          .catch(error => console.error('Error deleting diet plan:', error));
-      }
-    });
+// Authentication state observer
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    currentUser = user;
+    userNameElement.textContent = user.email;
+    await loadUserDiet();
+    await loadTodaysMeals();
+    initializeCharts();
+  } else {
+    window.location.href = '../generate-diets/index.html';
   }
-
-  // Initialize food analysis
-  initializeFoodAnalysis();
 });
 
-function initializeDashboard(plan) {
-  console.log('Initializing dashboard with plan:', plan); // Debug log
+// Logout functionality
+logoutBtn.addEventListener('click', () => {
+  auth.signOut();
+});
 
-  // Update overview section
-  document.getElementById('planName').textContent = plan.planName || 'Your Diet Plan';
-  document.getElementById('planOverview').textContent = plan.overview || '';
-  document.getElementById('dailyCalories').textContent = plan.dailyCalories || '0';
-  document.getElementById('waterIntake').textContent = plan.waterIntake || '0L';
-  document.getElementById('exerciseFreq').textContent = 
-    plan.exerciseRecommendations ? 
-    `${plan.exerciseRecommendations.frequency} × ${plan.exerciseRecommendations.duration}min` : 
-    'Not specified';
+// Load user's diet plan
+async function loadUserDiet() {
+  try {
+    const dietRef = db.collection('diets').doc(currentUser.uid);
+    const doc = await dietRef.get();
 
-  // Initialize macro chart
-  initializeMacroChart(plan.macroSplit);
-
-  // Update meal cards
-  updateMealCards(plan.mealStructure);
-
-  // Update weekly schedule
-  updateWeeklySchedule(plan.weeklySchedule);
-
-  // Update food lists
-  updateFoodLists(plan.foodList);
-
-  // Update tips
-  updateTips(plan.tips);
+    if (doc.exists) {
+      userDiet = doc.data();
+      displayDietPlan(userDiet);
+      updateProgress();
+    } else {
+      window.location.href = '../generate-diets/index.html';
+    }
+  } catch (error) {
+    console.error('Error loading diet:', error);
+  }
 }
 
-function initializeMacroChart(macros) {
-  // Wait for next tick to ensure DOM is ready
-  setTimeout(() => {
-    const canvas = document.getElementById('macroChart');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    
-    // Convert percentage strings to numbers
-    const proteinValue = parseInt(macros.protein) || 0;
-    const carbsValue = parseInt(macros.carbs) || 0;
-    const fatsValue = parseInt(macros.fats) || 0;
-
-    new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Protein', 'Carbs', 'Fats'],
-        datasets: [{
-          data: [proteinValue, carbsValue, fatsValue],
-          backgroundColor: ['#4F46E5', '#10B981', '#F59E0B'],
-          borderWidth: 0,
-          borderRadius: 5
-        }]
-      },
-      options: {
-        responsive: true,
-        cutout: '75%',
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              padding: 20,
-              font: {
-                family: 'Inter',
-                size: 12
-              }
-            }
-          }
-        }
-      }
-    });
-  }, 0);
-}
-
-function updateMealCards(mealStructure) {
-  const mealCardsContainer = document.querySelector('.meal-cards');
-  if (!mealCardsContainer) return;
-  
-  mealCardsContainer.innerHTML = ''; // Clear existing cards
-
-  Object.entries(mealStructure).forEach(([meal, data]) => {
-    const card = document.createElement('div');
-    card.className = 'meal-card';
-    
-    card.innerHTML = `
-      <h3>${meal.charAt(0).toUpperCase() + meal.slice(1)}</h3>
-      <div class="meal-time">${data.timing}</div>
-      <div class="meal-calories">${data.calories}</div>
-      <div class="meal-suggestions">
-        ${data.suggestions.map(suggestion => 
-          `<div class="suggestion">${suggestion}</div>`
-        ).join('')}
-      </div>
-    `;
-    
-    mealCardsContainer.appendChild(card);
-  });
-}
-
-function updateWeeklySchedule(weeklySchedule) {
-  const scheduleContainer = document.getElementById('weeklySchedule');
-  if (!scheduleContainer) return;
-
-  scheduleContainer.innerHTML = `
-    <div class="schedule-grid">
-      ${Object.entries(weeklySchedule).map(([day, meals]) => `
-        <div class="day-card">
-          <h3>${day.charAt(0).toUpperCase() + day.slice(1)}</h3>
-          ${Object.entries(meals).map(([mealType, meal]) => `
-            <div class="schedule-meal">
-              <strong>${mealType}:</strong> ${meal || 'Not specified'}
-            </div>
-          `).join('')}
-        </div>
-      `).join('')}
+// Display diet plan
+function displayDietPlan(diet) {
+  const dietDetails = document.querySelector('.diet-details');
+  dietDetails.innerHTML = `
+    <div class="diet-info">
+      <h3>Daily Goals</h3>
+      <p>Calories: ${diet.dailyCalories} kcal</p>
+      <p>Protein: ${diet.macros.protein}g</p>
+      <p>Carbs: ${diet.macros.carbs}g</p>
+      <p>Fats: ${diet.macros.fats}g</p>
+    </div>
+    <div class="diet-restrictions">
+      <h3>Dietary Preferences</h3>
+      <p>${diet.preferences || 'No specific preferences'}</p>
     </div>
   `;
 }
 
-function updateFoodLists(foodList) {
-  const includeFoodsList = document.getElementById('includeFoods');
-  const avoidFoodsList = document.getElementById('avoidFoods');
+// Meal logging functionality
+mealLogForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
 
-  if (includeFoodsList) {
-    includeFoodsList.innerHTML = foodList.include
-      .map(food => `<li>${food}</li>`)
-      .join('');
-  }
-    
-  if (avoidFoodsList) {
-    avoidFoodsList.innerHTML = foodList.avoid
-      .map(food => `<li>${food}</li>`)
-      .join('');
-  }
-}
+  const mealType = document.getElementById('meal-type').value;
+  const foodItem = document.getElementById('food-item').value;
+  const portionSize = document.getElementById('portion-size').value;
 
-function updateTips(tips) {
-  const tipsGrid = document.getElementById('tipsGrid');
-  if (tipsGrid) {
-    tipsGrid.innerHTML = tips
-      .map(tip => `
-        <div class="tip-card">
-          <svg xmlns="http://www.w3.org/2000/svg" class="tip-icon" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-          </svg>
-          <p>${tip}</p>
-        </div>
-      `)
-      .join('');
-  }
-}
-
-// Food Analysis Feature
-function initializeFoodAnalysis() {
-  const uploadButton = document.getElementById('uploadButton');
-  const imageInput = document.getElementById('imageInput');
-  const imagePreview = document.getElementById('imagePreview');
-  const analysisResults = document.getElementById('analysisResults');
-
-  uploadButton.addEventListener('click', () => {
-    imageInput.click();
-  });
-
-  imageInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Show image preview
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      imagePreview.innerHTML = `<img src="${e.target.result}" alt="Food preview">`;
+  try {
+    const meal = {
+      userId: currentUser.uid,
+      mealType,
+      foodItem,
+      portionSize: Number(portionSize),
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      date: new Date().toISOString().split('T')[0]
     };
-    reader.readAsDataURL(file);
 
-    // Analyze image
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+    await db.collection('meals').add(meal);
+    mealLogForm.reset();
+    await loadTodaysMeals();
+    updateProgress();
+  } catch (error) {
+    console.error('Error logging meal:', error);
+  }
+});
 
-      // Show loading state
-      analysisResults.innerHTML = `
-        <div class="loading-spinner">
-          <div class="spinner"></div>
-          <p>Analyzing your food...</p>
+// Load today's meals
+async function loadTodaysMeals() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const mealsRef = db.collection('meals')
+      .where('userId', '==', currentUser.uid)
+      .where('date', '==', today);
+
+    const snapshot = await mealsRef.get();
+    mealList.innerHTML = '';
+
+    snapshot.forEach(doc => {
+      const meal = doc.data();
+      const mealElement = document.createElement('div');
+      mealElement.className = 'meal-item';
+      mealElement.innerHTML = `
+        <div class="meal-info">
+          <strong>${meal.mealType}</strong>
+          <p>${meal.foodItem} - ${meal.portionSize}g</p>
         </div>
+        <button class="delete-meal" data-id="${doc.id}">
+          <i class='bx bx-trash'></i>
+        </button>
       `;
+      mealList.appendChild(mealElement);
+    });
 
-      const response = await fetch('https://api.logmeal.es/v2/image/recognition/complete', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer ca01efa88f621340ab3df2b3ec6c1943c15302ed'
-        },
-        body: formData
+    // Add delete functionality
+    document.querySelectorAll('.delete-meal').forEach(button => {
+      button.addEventListener('click', async () => {
+        const mealId = button.dataset.id;
+        await db.collection('meals').doc(mealId).delete();
+        await loadTodaysMeals();
+        updateProgress();
       });
+    });
+  } catch (error) {
+    console.error('Error loading meals:', error);
+  }
+}
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('API Error:', response.status, errorText);
-        throw new Error(`API request failed: ${response.status} ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('API Response:', data); // Add this to see the response
-      displayNutritionInfo(data);
-    } catch (error) {
-      console.error('Error analyzing food:', error);
-      analysisResults.innerHTML = `
-        <div class="error-message">
-          Failed to analyze image: ${error.message}
-        </div>
-      `;
+// Initialize charts
+function initializeCharts() {
+  // Nutrition Distribution Chart
+  const nutritionCtx = document.getElementById('nutrition-chart').getContext('2d');
+  nutritionChart = new Chart(nutritionCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Protein', 'Carbs', 'Fats'],
+      datasets: [{
+        data: [0, 0, 0],
+        backgroundColor: ['#28a745', '#007bff', '#ffc107']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false
     }
   });
+
+  // Progress Chart
+  const progressCtx = document.getElementById('progress-chart').getContext('2d');
+  progressChart = new Chart(progressCtx, {
+    type: 'line',
+    data: {
+      labels: getLastSevenDays(),
+      datasets: [{
+        label: 'Calories',
+        data: [],
+        borderColor: '#007bff',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+
+  updateCharts();
 }
 
-function displayNutritionInfo(data) {
-  const nutritionInfo = document.querySelector('.nutrition-info');
-  
-  // Format the nutrition data
-  const nutrients = {
-    calories: data.nutritional_info?.calories || 'N/A',
-    protein: data.nutritional_info?.protein || 'N/A',
-    carbs: data.nutritional_info?.carbohydrates || 'N/A',
-    fat: data.nutritional_info?.fat || 'N/A',
-    fiber: data.nutritional_info?.fiber || 'N/A'
-  };
+// Update progress bars and charts
+async function updateProgress() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const mealsRef = await db.collection('meals')
+      .where('userId', '==', currentUser.uid)
+      .where('date', '==', today)
+      .get();
 
-  // Create nutrition cards
-  nutritionInfo.innerHTML = `
-    <div class="nutrition-card">
-      <h4>Calories</h4>
-      <div class="value">${nutrients.calories} kcal</div>
+    let totalCalories = 0;
+    let totalProtein = 0;
+    let totalCarbs = 0;
+    let totalFats = 0;
+
+    mealsRef.forEach(doc => {
+      const meal = doc.data();
+      // This is a simplified calculation. In a real app, you'd want to use a food database API
+      totalCalories += meal.portionSize * 2; // Example calculation
+      totalProtein += meal.portionSize * 0.1;
+      totalCarbs += meal.portionSize * 0.2;
+      totalFats += meal.portionSize * 0.05;
+    });
+
+    // Update progress bars
+    updateProgressBar('Calories', totalCalories, userDiet.dailyCalories);
+    updateProgressBar('Protein', totalProtein, userDiet.macros.protein);
+    updateProgressBar('Carbs', totalCarbs, userDiet.macros.carbs);
+    updateProgressBar('Fats', totalFats, userDiet.macros.fats);
+
+    // Update charts
+    updateCharts();
+  } catch (error) {
+    console.error('Error updating progress:', error);
+  }
+}
+
+// Update individual progress bar
+function updateProgressBar(nutrient, current, target) {
+  const progressBar = document.querySelector(`.stat:contains('${nutrient}') .progress`);
+  const percentage = Math.min((current / target) * 100, 100);
+  progressBar.style.width = `${percentage}%`;
+}
+
+// Update charts with new data
+async function updateCharts() {
+  if (!nutritionChart || !progressChart) return;
+
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    const mealsRef = await db.collection('meals')
+      .where('userId', '==', currentUser.uid)
+      .where('date', '==', today)
+      .get();
+
+    let totalProtein = 0;
+    let totalCarbs = 0;
+    let totalFats = 0;
+
+    mealsRef.forEach(doc => {
+      const meal = doc.data();
+      totalProtein += meal.portionSize * 0.1;
+      totalCarbs += meal.portionSize * 0.2;
+      totalFats += meal.portionSize * 0.05;
+    });
+
+    // Update Nutrition Chart
+    nutritionChart.data.datasets[0].data = [totalProtein, totalCarbs, totalFats];
+    nutritionChart.update();
+
+    // Update Progress Chart
+    const weeklyData = await getWeeklyCalories();
+    progressChart.data.datasets[0].data = weeklyData;
+    progressChart.update();
+  } catch (error) {
+    console.error('Error updating charts:', error);
+  }
+}
+
+// Get calories for the last 7 days
+async function getWeeklyCalories() {
+  const calories = [];
+  const dates = getLastSevenDays();
+
+  for (const date of dates) {
+    const mealsRef = await db.collection('meals')
+      .where('userId', '==', currentUser.uid)
+      .where('date', '==', date)
+      .get();
+
+    let totalCalories = 0;
+    mealsRef.forEach(doc => {
+      const meal = doc.data();
+      totalCalories += meal.portionSize * 2; // Example calculation
+    });
+
+    calories.push(totalCalories);
+  }
+
+  return calories;
+}
+
+// Get array of last 7 days
+function getLastSevenDays() {
+  const dates = [];
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    dates.push(date.toISOString().split('T')[0]);
+  }
+  return dates;
+}
+
+// Meal AI functionality
+uploadArea.addEventListener('click', () => {
+  mealImageInput.click();
+});
+
+mealImageInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  try {
+    // Upload image to Firebase Storage
+    const storageRef = storage.ref(`meal-images/${currentUser.uid}/${Date.now()}_${file.name}`);
+    await storageRef.put(file);
+    const imageUrl = await storageRef.getDownloadURL();
+
+    // Here you would integrate with a food recognition API (e.g., LogMeal AI)
+    // For now, we'll show a mock analysis
+    showMealAnalysis(imageUrl);
+  } catch (error) {
+    console.error('Error processing image:', error);
+  }
+});
+
+// Show meal analysis results
+function showMealAnalysis(imageUrl) {
+  analysisResults.style.display = 'block';
+  analysisResults.innerHTML = `
+    <div class="image-preview">
+      <img src="${imageUrl}" alt="Meal" style="width: 100%; height: 100%; object-fit: cover;">
     </div>
-    <div class="nutrition-card">
-      <h4>Protein</h4>
-      <div class="value">${nutrients.protein}g</div>
+    <div class="analysis-data">
+      <div class="nutrient-card">
+        <h4>Estimated Calories</h4>
+        <p>350 kcal</p>
+      </div>
+      <div class="nutrient-card">
+        <h4>Protein</h4>
+        <p>15g</p>
+      </div>
+      <div class="nutrient-card">
+        <h4>Carbs</h4>
+        <p>45g</p>
+      </div>
+      <div class="nutrient-card">
+        <h4>Fats</h4>
+        <p>12g</p>
+      </div>
     </div>
-    <div class="nutrition-card">
-      <h4>Carbs</h4>
-      <div class="value">${nutrients.carbs}g</div>
-    </div>
-    <div class="nutrition-card">
-      <h4>Fat</h4>
-      <div class="value">${nutrients.fat}g</div>
-    </div>
-    <div class="nutrition-card">
-      <h4>Fiber</h4>
-      <div class="value">${nutrients.fiber}g</div>
+    <div class="diet-compatibility mt-4">
+      <h4>Diet Compatibility</h4>
+      <p class="text-success">✓ This meal aligns with your diet plan</p>
     </div>
   `;
-
-  // Add food recognition results
-  if (data.recognition_results?.length > 0) {
-    const foodItems = data.recognition_results.map(item => 
-      `<div class="food-item">
-        <span class="food-name">${item.name}</span>
-        <span class="confidence">${Math.round(item.confidence * 100)}%</span>
-      </div>`
-    ).join('');
-
-    nutritionInfo.insertAdjacentHTML('beforeend', `
-      <div class="recognized-foods">
-        <h4>Recognized Foods</h4>
-        ${foodItems}
-      </div>
-    `);
-  }
 }
 
-// Add these styles to your CSS
-const additionalStyles = `
-  .nutrition-card {
-    background: white;
-    padding: 1rem;
-    border-radius: 0.75rem;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  .nutrition-card h4 {
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-  }
-
-  .nutrition-card .value {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--primary);
-  }
-
-  .loading-spinner {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .spinner {
-    width: 40px;
-    height: 40px;
-    border: 3px solid var(--primary-light);
-    border-top: 3px solid var(--primary);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
-
-  .recognized-foods {
-    grid-column: 1 / -1;
-    margin-top: 1rem;
-  }
-
-  .food-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 0.5rem;
-    background: white;
-    border-radius: 0.5rem;
-    margin-top: 0.5rem;
-  }
-
-  .confidence {
-    color: var(--primary);
-    font-weight: 500;
-  }
-
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
+// Helper function for jQuery-like contains selector
+Element.prototype.contains = function(text) {
+  return this.textContent.includes(text);
+}; 
