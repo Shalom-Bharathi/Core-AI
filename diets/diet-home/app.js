@@ -72,31 +72,47 @@ function initializeDashboard(plan) {
 }
 
 function initializeMacroChart(macros) {
-  const ctx = document.getElementById('macroChart').getContext('2d');
-  
-  // Convert percentage strings to numbers
-  const proteinValue = parseInt(macros.protein) || 0;
-  const carbsValue = parseInt(macros.carbs) || 0;
-  const fatsValue = parseInt(macros.fats) || 0;
+  // Wait for next tick to ensure DOM is ready
+  setTimeout(() => {
+    const canvas = document.getElementById('macroChart');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Convert percentage strings to numbers
+    const proteinValue = parseInt(macros.protein) || 0;
+    const carbsValue = parseInt(macros.carbs) || 0;
+    const fatsValue = parseInt(macros.fats) || 0;
 
-  new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Protein', 'Carbs', 'Fats'],
-      datasets: [{
-        data: [proteinValue, carbsValue, fatsValue],
-        backgroundColor: ['#4F46E5', '#10B981', '#F59E0B']
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: {
-          position: 'bottom'
+    new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Protein', 'Carbs', 'Fats'],
+        datasets: [{
+          data: [proteinValue, carbsValue, fatsValue],
+          backgroundColor: ['#4F46E5', '#10B981', '#F59E0B'],
+          borderWidth: 0,
+          borderRadius: 5
+        }]
+      },
+      options: {
+        responsive: true,
+        cutout: '75%',
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              padding: 20,
+              font: {
+                family: 'Inter',
+                size: 12
+              }
+            }
+          }
         }
       }
-    }
-  });
+    });
+  }, 0);
 }
 
 function updateMealCards(mealStructure) {
