@@ -1,3 +1,11 @@
+// Global variables
+let db;
+let auth;
+let storage;
+let currentUser = null;
+let currentDiet = null;
+let API_KEY;
+
 // Initialize Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
@@ -10,13 +18,71 @@ const firebaseConfig = {
   measurementId: "G-0J1RLMVEGC"
 };
 
-firebase.initializeApp(firebaseConfig);
+// Initialize Firebase and load API keys
+async function initializeApp() {
+  // Initialize Firebase if not already initialized
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  // Initialize Firebase services
+  auth = firebase.auth();
+  db = firebase.firestore();
+  storage = firebase.storage();
+
+  // Load API keys
+  try {
+    const apiKeysSnapshot = await db.collection('API').get();
+    apiKeysSnapshot.forEach(doc => {
+      API_KEY = doc.data().API;
+      console.log("API Key loaded successfully");
+    });
+  } catch (error) {
+    console.error("Error loading API key:", error);
+  }
+
+  // Auth state change listener
+  auth.onAuthStateChanged(async (user) => {
+    if (user) {
+      currentUser = user;
+      await loadUserDiet();
+    } else {
+      window.location.href = '../auth/login.html';
+    }
+  });
+}
+
+// Load user's diet plan
+async function loadUserDiet() {
+  try {
+    const dietSnapshot = await db.collection('diets')
+      .where('userId', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    if (dietSnapshot.empty) {
+      window.location.href = '../generate-diets/index.html';
+      return;
+    }
+
+    currentDiet = {
+      id: dietSnapshot.docs[0].id,
+      ...dietSnapshot.docs[0].data()
+    };
+    
+    updateDietOverview();
+    await loadMealHistory();
+    initializeCharts();
+  } catch (error) {
+    console.error('Error loading diet:', error);
+    showError('Failed to load diet plan');
+  }
+}
 
 // API Keys and configuration
-let API_KEY;
 let thingsRefx;
 let unsubscribex;
-let db = firebase.firestore();
 thingsRefx = db.collection('API');
 
 // Wait for API key to be loaded before allowing interactions
@@ -821,59 +887,6 @@ link.rel = 'icon';
 link.href = 'data:;base64,iVBORw0KGgo='; // Empty favicon
 document.head.appendChild(link);
 
-// Initialize Firebase and load API keys
-let auth;
-let storage;
-let currentUser = null;
-let currentDiet = null;
-
-async function initializeApp() {
-  // Firebase initialization
-  auth = firebase.auth();
-  db = firebase.firestore();
-  storage = firebase.storage();
-
-  // Load API keys
-  const apiKeysSnapshot = await db.collection('API').get();
-  apiKeysSnapshot.forEach(doc => {
-    API_KEY = doc.data().API;
-  });
-
-  // Auth state change listener
-  auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      currentUser = user;
-      await loadUserDiet();
-    } else {
-      window.location.href = '../auth/login.html';
-    }
-  });
-}
-
-// Load user's diet plan
-async function loadUserDiet() {
-  try {
-    const dietSnapshot = await db.collection('diets')
-      .where('userId', '==', currentUser.uid)
-      .orderBy('createdAt', 'desc')
-      .limit(1)
-      .get();
-
-    if (dietSnapshot.empty) {
-      window.location.href = '../generate-diets/index.html';
-      return;
-    }
-
-    currentDiet = dietSnapshot.docs[0].data();
-    updateDietOverview();
-    await loadMealHistory();
-    initializeCharts();
-  } catch (error) {
-    console.error('Error loading diet:', error);
-    showError('Failed to load diet plan');
-  }
-}
-
 // Update diet overview section
 function updateDietOverview() {
   document.getElementById('dailyCalories').textContent = currentDiet.dailyCalories || '2000';
@@ -1179,5 +1192,5 @@ function showSuccess(message) {
   console.log(message);
 }
 
-// Initialize the application
-initializeApp(); 
+// Initialize the application when the document is ready
+document.addEventListener('DOMContentLoaded', initializeApp); 
