@@ -68,6 +68,40 @@ let requiredInfo = {
 // Add this variable at the top with other state variables
 let hasUserInteracted = false;
 
+// Add this function at the beginning of the file, after Firebase initialization
+async function checkExistingDiet() {
+  if (!firebase.auth().currentUser) return;
+
+  try {
+    const dietSnapshot = await db.collection('diets')
+      .where('userId', '==', firebase.auth().currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    if (!dietSnapshot.empty) {
+      window.location.href = '../diet-home/index.html';
+    }
+  } catch (error) {
+    console.error('Error checking existing diet:', error);
+  }
+}
+
+// Modify the existing initializeApp function
+async function initializeApp() {
+  // Existing Firebase initialization code...
+
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (user) {
+      currentUser = user;
+      await checkExistingDiet(); // Add this line
+      // Rest of the existing code...
+    } else {
+      window.location.href = '../auth/login.html';
+    }
+  });
+}
+
 function initializeDietGeneration() {
   const mainContent = document.querySelector('.main-content');
   mainContent.innerHTML = `
@@ -465,76 +499,42 @@ function showLoadingPopup(message) {
   return popup;
 }
 
-// Function to generate diet plan
+// Modify the generateDietPlan function to include more comprehensive information
 async function generateDietPlan() {
-  const loadingStates = [
-    'Analyzing your preferences...',
-    'Calculating nutritional requirements...',
-    'Generating personalized diet plan...',
-    'Saving your plan...'
-  ];
+  const userResponses = {
+    goals: requiredInfo.goals ? userResponses[0] : '',
+    dietary: requiredInfo.dietary ? userResponses[1] : '',
+    lifestyle: requiredInfo.lifestyle ? userResponses[2] : ''
+  };
 
-  const popup = showLoadingPopup(loadingStates[0]);
-  
+  const prompt = `As a professional nutritionist, create a comprehensive and personalized diet plan based on the following information:
+
+User's Goals and Motivation:
+${userResponses.goals}
+
+Dietary Preferences and Restrictions:
+${userResponses.dietary}
+
+Lifestyle and Daily Schedule:
+${userResponses.lifestyle}
+
+Please provide a detailed diet plan that includes:
+1. Daily caloric needs and macronutrient breakdown
+2. Meal timing recommendations based on their schedule
+3. Specific food suggestions for each meal
+4. Portion control guidelines
+5. Healthy snack options
+6. Tips for meal prep and planning
+7. Strategies for dining out while maintaining the diet
+8. Progress tracking metrics
+9. Potential challenges and solutions
+10. Weekly meal plan template
+
+Format the response in clear sections using markdown.`;
+
   try {
-    // Show loading states
-    for (let i = 0; i < loadingStates.length - 1; i++) {
-      popup.querySelector('p').textContent = loadingStates[i];
-      await new Promise(resolve => setTimeout(resolve, 1500));
-    }
-
-    const prompt = `
-      Based on the following user responses:
-      ${userResponses.map((response, index) => `Response ${index + 1}: ${response}`).join('\n')}
-      
-      Generate a comprehensive diet plan in the following JSON structure:
-      {
-        "planName": "Name of the personalized diet plan",
-        "overview": "Brief overview of the diet plan",
-        "dailyCalories": 2000,
-        "macros": {
-          "protein": 150,
-          "carbs": 250,
-          "fats": 70
-        },
-        "preferences": "List of dietary preferences and restrictions",
-        "mealStructure": {
-          "breakfast": {
-            "timing": "Recommended timing",
-            "calories": 500,
-            "suggestions": ["3-4 meal suggestions"]
-          },
-          "lunch": {
-            "timing": "Recommended timing",
-            "calories": 700,
-            "suggestions": ["3-4 meal suggestions"]
-          },
-          "dinner": {
-            "timing": "Recommended timing",
-            "calories": 600,
-            "suggestions": ["3-4 meal suggestions"]
-          },
-          "snacks": {
-            "timing": "Recommended timing",
-            "calories": 200,
-            "suggestions": ["3-4 snack suggestions"]
-          }
-        },
-        "foodList": {
-          "include": ["List of recommended foods"],
-          "avoid": ["List of foods to avoid"]
-        },
-        "tips": ["List of 5-6 important tips and recommendations"],
-        "waterIntake": 2.5,
-        "supplements": ["Optional list of recommended supplements"]
-      }
-
-      Make sure all numeric values (calories, macros, etc.) are actual numbers, not strings.
-      The macros should be in grams and should align with the daily calorie goal.
-      The meal calories should sum up to the daily calorie goal.
-      Base the recommendations on the user's responses and current fitness science.
-    `;
-
+    showLoadingPopup('Generating your personalized diet plan...');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -552,40 +552,56 @@ async function generateDietPlan() {
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
     const data = await response.json();
-    const dietPlan = JSON.parse(data.choices[0].message.content);
-    
-    // Show saving state
-    popup.querySelector('p').textContent = loadingStates[3];
-    
-    // Save to Firebase
-    const user = firebase.auth().currentUser;
-    if (!user) {
-      throw new Error('User not authenticated');
+    if (!data.choices || !data.choices[0]) {
+      throw new Error('Invalid response from OpenAI');
     }
 
-    await db.collection('diets').doc(user.uid).set({
-      ...dietPlan,
+    const dietPlan = data.choices[0].message.content;
+    
+    // Save diet plan to Firestore
+    const dietDoc = await db.collection('diets').add({
+      userId: firebase.auth().currentUser.uid,
+      plan: dietPlan,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      userId: user.uid,
-      responses: userResponses
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+      mealsLogged: 0,
+      responses: userResponses,
+      dailyCalories: extractDailyCalories(dietPlan),
+      macros: extractMacros(dietPlan)
     });
 
-    // Remove loading popup
-    popup.remove();
-
-    // Redirect to diet-home
-    window.location.replace('../diet-home/index.html');
-
+    // Redirect to diet dashboard
+    window.location.href = '../diet-home/index.html';
   } catch (error) {
     console.error('Error generating diet plan:', error);
-    popup.remove();
-    updateStatus('Error generating diet plan. Please try again.');
+    showError('Failed to generate diet plan. Please try again.');
+  } finally {
+    hideLoadingPopup();
   }
+}
+
+// Helper function to extract daily calories from diet plan
+function extractDailyCalories(dietPlan) {
+  const calorieMatch = dietPlan.match(/(\d{1,4})\s*(?:to\s*\d{1,4}\s*)?calories/i);
+  return calorieMatch ? parseInt(calorieMatch[1]) : 2000;
+}
+
+// Helper function to extract macros from diet plan
+function extractMacros(dietPlan) {
+  const defaultMacros = { protein: 30, carbs: 40, fat: 30 };
+  
+  const macroMatches = {
+    protein: dietPlan.match(/protein:\s*(\d{1,3})%/i),
+    carbs: dietPlan.match(/carb(?:ohydrate)?s:\s*(\d{1,3})%/i),
+    fat: dietPlan.match(/fat:\s*(\d{1,3})%/i)
+  };
+
+  return {
+    protein: macroMatches.protein ? parseInt(macroMatches.protein[1]) : defaultMacros.protein,
+    carbs: macroMatches.carbs ? parseInt(macroMatches.carbs[1]) : defaultMacros.carbs,
+    fat: macroMatches.fat ? parseInt(macroMatches.fat[1]) : defaultMacros.fat
+  };
 }
 
 // Function to process audio response using Whisper API
@@ -789,7 +805,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Check if user already has a diet plan
   firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
-      const doc = await db.collection('diets').doc(user.uid).get();
+      const doc = await db.collection('dietPlans').doc(user.uid).get();
       if (doc.exists) {
         // User has a diet plan, redirect to dashboard
         window.location.replace('../diet-home/index.html');

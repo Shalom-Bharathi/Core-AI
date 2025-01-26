@@ -5,158 +5,167 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin-allow-popups">
   <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
-  <title>Diet Dashboard</title>
-  <link rel="stylesheet" href="style.css">
+  <title>CoreAI Diet Dashboard</title>
+  <link rel="stylesheet" href="./style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://api.fontshare.com/v2/css?f[]=cal-sans@400,500,600&display=swap" rel="stylesheet">
-  <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/7.16.1/firebase-storage.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="../firebase-config.js"></script>
   <script src="./app.js"></script>
 </head>
 <body>
-  <div class="dashboard-container">
+  <div id="app" class="app">
     <!-- Sidebar -->
     <aside class="sidebar">
-      <div class="logo">
-        <i class='bx bx-pulse'></i>
-        <span>CoreAI Diet</span>
+      <div class="sidebar-content">
+        <div class="logo">
+          <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <span class="logo-text">CoreAI</span>
+        </div>
+        
+        <nav class="nav-links">
+          <a href="#" class="nav-link active">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            <span>Dashboard</span>
+          </a>
+          <a href="../generate-diets/index.html" class="nav-link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3z"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+            <span>Generate Diet</span>
+          </a>
+        </nav>
       </div>
-      <nav class="nav-menu">
-        <a href="#overview" class="active"><i class='bx bxs-dashboard'></i> Overview</a>
-        <a href="#meal-tracking"><i class='bx bx-food-menu'></i> Meal Tracking</a>
-        <a href="#meal-ai"><i class='bx bx-camera'></i> Meal AI</a>
-        <a href="#voice-assistant"><i class='bx bx-microphone'></i> Voice Assistant</a>
-        <a href="#food-charts"><i class='bx bx-line-chart'></i> Food Charts</a>
-      </nav>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Header -->
-      <header class="dashboard-header">
-        <div class="header-content">
-          <h1>Diet Dashboard</h1>
-          <div class="user-profile">
-            <span class="user-name">Loading...</span>
-            <button class="logout-btn"><i class='bx bx-log-out'></i></button>
-          </div>
-        </div>
-      </header>
-
-      <!-- Overview Section -->
-      <section id="overview" class="dashboard-section">
-        <div class="overview-grid">
-          <div class="diet-summary card">
-            <h2>Your Diet Plan</h2>
-            <div class="diet-details">Loading...</div>
-          </div>
-          <div class="progress-card card">
-            <h2>Today's Progress</h2>
-            <div class="progress-stats">
-              <div class="stat">
-                <span class="label">Calories</span>
-                <div class="progress-bar">
-                  <div class="progress" style="width: 0%"></div>
-                </div>
+      <div class="dashboard-container">
+        <!-- Diet Overview Section -->
+        <section class="diet-overview">
+          <h2>Your Diet Plan</h2>
+          <div class="diet-stats">
+            <div class="stat-card">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V6a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v14"/><path d="M2 20h20"/><path d="M14 12v.01"/></svg>
+              <div class="stat-info">
+                <span class="stat-label">Daily Calories</span>
+                <span class="stat-value" id="dailyCalories">--</span>
               </div>
-              <div class="stat">
-                <span class="label">Protein</span>
-                <div class="progress-bar">
-                  <div class="progress" style="width: 0%"></div>
-                </div>
+            </div>
+            <div class="stat-card">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 15 3.5-3.5"/><path d="M20.3 18c.4-1 .7-2.2.7-3.4C21 9.8 17 6 12 6s-9 3.8-9 8.6c0 1.2.3 2.4.7 3.4"/></svg>
+              <div class="stat-info">
+                <span class="stat-label">Progress</span>
+                <span class="stat-value" id="progressValue">--</span>
               </div>
-              <div class="stat">
-                <span class="label">Carbs</span>
-                <div class="progress-bar">
-                  <div class="progress" style="width: 0%"></div>
-                </div>
-              </div>
-              <div class="stat">
-                <span class="label">Fats</span>
-                <div class="progress-bar">
-                  <div class="progress" style="width: 0%"></div>
-                </div>
+            </div>
+            <div class="stat-card">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              <div class="stat-info">
+                <span class="stat-label">Meals Logged</span>
+                <span class="stat-value" id="mealsLogged">--</span>
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Meal Tracking Section -->
-      <section id="meal-tracking" class="dashboard-section">
-        <div class="meal-tracking-container">
-          <div class="meal-log card">
-            <h2>Log Your Meal</h2>
-            <form id="meal-log-form">
-              <select id="meal-type" required>
-                <option value="">Select Meal Type</option>
-                <option value="breakfast">Breakfast</option>
-                <option value="lunch">Lunch</option>
-                <option value="dinner">Dinner</option>
-                <option value="snack">Snack</option>
-              </select>
-              <input type="text" id="food-item" placeholder="Food Item" required>
-              <input type="number" id="portion-size" placeholder="Portion Size (g)" required>
-              <button type="submit" class="btn-primary">Log Meal</button>
-            </form>
-          </div>
-          <div class="meal-history card">
-            <h2>Today's Meals</h2>
-            <div class="meal-list"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Meal AI Section -->
-      <section id="meal-ai" class="dashboard-section">
-        <div class="meal-ai-container card">
-          <h2>Meal AI Analysis</h2>
-          <div class="image-upload-container">
-            <div class="upload-area" id="upload-area">
-              <i class='bx bx-camera'></i>
-              <p>Drop your food image here or click to upload</p>
-              <input type="file" id="meal-image-input" accept="image/*" hidden>
+        <!-- Meal Logging Section -->
+        <section class="meal-logging">
+          <h2>Log Your Meal</h2>
+          <div class="meal-input">
+            <div class="meal-type-selector">
+              <button class="meal-type-btn active" data-meal-type="breakfast">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Breakfast
+              </button>
+              <button class="meal-type-btn" data-meal-type="lunch">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Lunch
+              </button>
+              <button class="meal-type-btn" data-meal-type="dinner">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Dinner
+              </button>
+              <button class="meal-type-btn" data-meal-type="snack">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                Snack
+              </button>
             </div>
-            <button class="camera-btn"><i class='bx bx-camera'></i> Take Photo</button>
+            <div class="meal-input-methods">
+              <div class="text-input">
+                <input type="text" id="mealInput" placeholder="What did you eat?">
+                <button id="logMealBtn" class="primary-button">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                  Log Meal
+                </button>
+              </div>
+              <div class="or-divider">or</div>
+              <div class="image-upload">
+                <input type="file" id="mealImage" accept="image/*" capture="environment" hidden>
+                <button id="uploadImageBtn" class="secondary-button">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                  Upload Photo
+                </button>
+              </div>
+            </div>
           </div>
-          <div class="analysis-results" style="display: none">
-            <div class="image-preview"></div>
-            <div class="analysis-data"></div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- Voice Assistant Section -->
-      <section id="voice-assistant" class="dashboard-section">
-        <div class="voice-assistant-container card">
-          <h2>Voice Assistant</h2>
-          <div class="voice-interface">
-            <!-- Voice AI interface will be implemented here -->
+        <!-- AI Analysis Section -->
+        <section class="ai-analysis">
+          <div class="meal-ai">
+            <h2>Meal AI Analysis</h2>
+            <div id="mealAnalysis" class="analysis-content">
+              <div class="placeholder-text">Upload a photo of your meal for AI analysis</div>
+            </div>
           </div>
-        </div>
-      </section>
+          <div class="voice-ai">
+            <h2>Voice Assistant</h2>
+            <div class="voice-container">
+              <div class="voice-placeholder">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+                <p>Voice AI Coming Soon</p>
+              </div>
+            </div>
+          </div>
+        </section>
 
-      <!-- Food Charts Section -->
-      <section id="food-charts" class="dashboard-section">
-        <div class="charts-container">
-          <div class="chart-card card">
-            <h2>Nutrition Distribution</h2>
-            <canvas id="nutrition-chart"></canvas>
+        <!-- Nutrition Charts Section -->
+        <section class="nutrition-charts">
+          <h2>Nutrition Overview</h2>
+          <div class="charts-container">
+            <div class="chart-card">
+              <h3>Daily Macros</h3>
+              <canvas id="macrosChart"></canvas>
+            </div>
+            <div class="chart-card">
+              <h3>Weekly Progress</h3>
+              <canvas id="progressChart"></canvas>
+            </div>
           </div>
-          <div class="chart-card card">
-            <h2>Weekly Progress</h2>
-            <canvas id="progress-chart"></canvas>
+        </section>
+
+        <!-- Meal History Section -->
+        <section class="meal-history">
+          <h2>Recent Meals</h2>
+          <div id="mealHistory" class="history-list">
+            <!-- Meal history items will be dynamically added here -->
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
     </main>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
+    <div class="loading-content">
+      <div class="loading-spinner"></div>
+      <p id="loadingMessage">Analyzing your meal...</p>
+    </div>
   </div>
 </body>
 </html>
