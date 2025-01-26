@@ -1,22 +1,55 @@
-// Initialize Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
-  authDomain: "coreai-82c79.firebaseapp.com",
-  databaseURL: "https://coreai-82c79-default-rtdb.firebaseio.com",
-  projectId: "coreai-82c79",
-  storageBucket: "coreai-82c79.firebasestorage.app",
-  messagingSenderId: "97395011364",
-  appId: "1:97395011364:web:1e8f6a06fce409bfd80db1",
-  measurementId: "G-0J1RLMVEGC"
-};
+// Initialize Firebase if not already initialized
+if (!firebase.apps.length) {
+  const firebaseConfig = {
+    apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
+    authDomain: "coreai-82c79.firebaseapp.com",
+    databaseURL: "https://coreai-82c79-default-rtdb.firebaseio.com",
+    projectId: "coreai-82c79",
+    storageBucket: "coreai-82c79.firebasestorage.app",
+    messagingSenderId: "97395011364",
+    appId: "1:97395011364:web:1e8f6a06fce409bfd80db1",
+    measurementId: "G-0J1RLMVEGC"
+  };
 
-firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.firestore();
+
+// Global variables
+let currentUser = null;
+let userDietPlan = null;
+let nutritionChart = null;
+let macrosChart = null;
+let API_KEY = null;
+
+// Get API Key from Firebase
+db.collection('API').onSnapshot(querySnapshot => {
+  querySnapshot.docs.forEach(doc => {
+    API_KEY = doc.data().API;
+  });
+});
+
+// Initialize app when DOM is loaded
+document.addEventListener('DOMContentLoaded', initializeApp);
+
+async function initializeApp() {
+  // Check authentication state
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (user) {
+      currentUser = user;
+      await loadUserDietPlan();
+      initializeCharts();
+      initializeEventListeners();
+      updateDashboardStats();
+    } else {
+      window.location.href = '../auth/login.html';
+    }
+  });
+}
 
 // API Keys and configuration
-let API_KEY;
 let thingsRefx;
 let unsubscribex;
-let db = firebase.firestore();
 thingsRefx = db.collection('API');
 
 // Wait for API key to be loaded before allowing interactions
@@ -85,21 +118,6 @@ async function checkExistingDiet() {
   } catch (error) {
     console.error('Error checking existing diet:', error);
   }
-}
-
-// Modify the existing initializeApp function
-async function initializeApp() {
-  // Existing Firebase initialization code...
-
-  firebase.auth().onAuthStateChanged(async (user) => {
-    if (user) {
-      currentUser = user;
-      await checkExistingDiet(); // Add this line
-      // Rest of the existing code...
-    } else {
-      window.location.href = '../auth/login.html';
-    }
-  });
 }
 
 function initializeDietGeneration() {
@@ -813,42 +831,6 @@ function addMessageToConversation(type, content) {
     conversationHistory.scrollTop = conversationHistory.scrollHeight;
   }
 }
-
-// Update initialization to wait for API key
-document.addEventListener('DOMContentLoaded', () => {
-  // Check if user already has a diet plan
-  firebase.auth().onAuthStateChanged(async (user) => {
-    if (user) {
-      const doc = await db.collection('dietPlans').doc(user.uid).get();
-      if (doc.exists) {
-        // User has a diet plan, redirect to dashboard
-        window.location.replace('../diet-home/index.html');
-        return;
-      }
-      // If no diet plan exists, initialize the diet generation
-      initializeDietGeneration();
-    }
-  });
-
-  // Update navigation links
-  const dashboardLink = document.querySelector('a[href="#"].nav-link:not(.active)');
-  dashboardLink.addEventListener('click', (e) => {
-    e.preventDefault();
-    window.location.href = '../diet-home/index.html';
-  });
-});
-
-// Add favicon link to prevent 404
-const link = document.createElement('link');
-link.rel = 'icon';
-link.href = 'data:;base64,iVBORw0KGgo='; // Empty favicon
-document.head.appendChild(link);
-
-// Global variables
-let currentUser = null;
-let userDietPlan = null;
-let nutritionChart = null;
-let macrosChart = null;
 
 // Load user's diet plan from Firestore
 async function loadUserDietPlan() {
