@@ -1,11 +1,3 @@
-// Global variables
-let db;
-let auth;
-let storage;
-let currentUser = null;
-let currentDiet = null;
-let API_KEY;
-
 // Initialize Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAtBxeZrh4cej7ZzsKZ5uN-BqC_wxoTmdE",
@@ -18,71 +10,13 @@ const firebaseConfig = {
   measurementId: "G-0J1RLMVEGC"
 };
 
-// Initialize Firebase and load API keys
-async function initializeApp() {
-  // Initialize Firebase if not already initialized
-  if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-  }
-
-  // Initialize Firebase services
-  auth = firebase.auth();
-  db = firebase.firestore();
-  storage = firebase.storage();
-
-  // Load API keys
-  try {
-    const apiKeysSnapshot = await db.collection('API').get();
-    apiKeysSnapshot.forEach(doc => {
-      API_KEY = doc.data().API;
-      console.log("API Key loaded successfully");
-    });
-  } catch (error) {
-    console.error("Error loading API key:", error);
-  }
-
-  // Auth state change listener
-  auth.onAuthStateChanged(async (user) => {
-    if (user) {
-      currentUser = user;
-      await loadUserDiet();
-    } else {
-      window.location.href = '../auth/login.html';
-    }
-  });
-}
-
-// Load user's diet plan
-async function loadUserDiet() {
-  try {
-    const dietSnapshot = await db.collection('diets')
-      .where('userId', '==', currentUser.uid)
-      .orderBy('createdAt', 'desc')
-      .limit(1)
-      .get();
-
-    if (dietSnapshot.empty) {
-      window.location.href = '../generate-diets/index.html';
-      return;
-    }
-
-    currentDiet = {
-      id: dietSnapshot.docs[0].id,
-      ...dietSnapshot.docs[0].data()
-    };
-    
-    updateDietOverview();
-    await loadMealHistory();
-    initializeCharts();
-  } catch (error) {
-    console.error('Error loading diet:', error);
-    showError('Failed to load diet plan');
-  }
-}
+firebase.initializeApp(firebaseConfig);
 
 // API Keys and configuration
+let API_KEY;
 let thingsRefx;
 let unsubscribex;
+let db = firebase.firestore();
 thingsRefx = db.collection('API');
 
 // Wait for API key to be loaded before allowing interactions
@@ -133,6 +67,40 @@ let requiredInfo = {
 
 // Add this variable at the top with other state variables
 let hasUserInteracted = false;
+
+// Add this function at the beginning of the file, after Firebase initialization
+async function checkExistingDiet() {
+  if (!firebase.auth().currentUser) return;
+
+  try {
+    const dietSnapshot = await db.collection('diets')
+      .where('userId', '==', firebase.auth().currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .limit(1)
+      .get();
+
+    if (!dietSnapshot.empty) {
+      window.location.href = '../diet-home/index.html';
+    }
+  } catch (error) {
+    console.error('Error checking existing diet:', error);
+  }
+}
+
+// Modify the existing initializeApp function
+async function initializeApp() {
+  // Existing Firebase initialization code...
+
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (user) {
+      currentUser = user;
+      await checkExistingDiet(); // Add this line
+      // Rest of the existing code...
+    } else {
+      window.location.href = '../auth/login.html';
+    }
+  });
+}
 
 function initializeDietGeneration() {
   const mainContent = document.querySelector('.main-content');
@@ -531,84 +499,42 @@ function showLoadingPopup(message) {
   return popup;
 }
 
-// Function to generate diet plan
+// Modify the generateDietPlan function to include more comprehensive information
 async function generateDietPlan() {
-  const loadingStates = [
-    'Analyzing your preferences...',
-    'Calculating nutritional requirements...',
-    'Generating personalized diet plan...',
-    'Saving your plan...'
-  ];
+  const userResponses = {
+    goals: requiredInfo.goals ? userResponses[0] : '',
+    dietary: requiredInfo.dietary ? userResponses[1] : '',
+    lifestyle: requiredInfo.lifestyle ? userResponses[2] : ''
+  };
 
-  const popup = showLoadingPopup(loadingStates[0]);
-  
+  const prompt = `As a professional nutritionist, create a comprehensive and personalized diet plan based on the following information:
+
+User's Goals and Motivation:
+${userResponses.goals}
+
+Dietary Preferences and Restrictions:
+${userResponses.dietary}
+
+Lifestyle and Daily Schedule:
+${userResponses.lifestyle}
+
+Please provide a detailed diet plan that includes:
+1. Daily caloric needs and macronutrient breakdown
+2. Meal timing recommendations based on their schedule
+3. Specific food suggestions for each meal
+4. Portion control guidelines
+5. Healthy snack options
+6. Tips for meal prep and planning
+7. Strategies for dining out while maintaining the diet
+8. Progress tracking metrics
+9. Potential challenges and solutions
+10. Weekly meal plan template
+
+Format the response in clear sections using markdown.`;
+
   try {
-    // Show loading states
-    for (let i = 0; i < loadingStates.length - 1; i++) {
-      popup.querySelector('p').textContent = loadingStates[i];
-      await new Promise(resolve => setTimeout(resolve, 1500));
-    }
-
-    const prompt = `
-      Based on the following user responses:
-      ${userResponses.map((response, index) => `Response ${index + 1}: ${response}`).join('\n')}
-      
-      Generate a comprehensive diet plan in the following JSON structure:
-      {
-        "planName": "Name of the personalized diet plan",
-        "overview": "Brief overview of the diet plan",
-        "dailyCalories": "Estimated daily calorie intake",
-        "macroSplit": {
-          "protein": "percentage",
-          "carbs": "percentage",
-          "fats": "percentage"
-        },
-        "mealStructure": {
-          "breakfast": {
-            "timing": "Recommended timing",
-            "calories": "Calories for this meal",
-            "suggestions": ["3-4 meal suggestions"]
-          },
-          "lunch": {
-            "timing": "Recommended timing",
-            "calories": "Calories for this meal",
-            "suggestions": ["3-4 meal suggestions"]
-          },
-          "dinner": {
-            "timing": "Recommended timing",
-            "calories": "Calories for this meal",
-            "suggestions": ["3-4 meal suggestions"]
-          },
-          "snacks": {
-            "timing": "Recommended timing",
-            "calories": "Calories per snack",
-            "suggestions": ["3-4 snack suggestions"]
-          }
-        },
-        "foodList": {
-          "include": ["List of recommended foods"],
-          "avoid": ["List of foods to avoid"]
-        },
-        "weeklySchedule": {
-          "monday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "tuesday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "wednesday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "thursday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "friday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "saturday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" },
-          "sunday": { "breakfast": "", "lunch": "", "dinner": "", "snacks": "" }
-        },
-        "tips": ["List of 5-6 important tips and recommendations"],
-        "waterIntake": "Daily water intake recommendation in liters",
-        "supplements": ["Optional list of recommended supplements"],
-        "exerciseRecommendations": {
-          "type": "Recommended exercise type",
-          "frequency": "Weekly frequency",
-          "duration": "Minutes per session"
-        }
-      }
-    `;
-
+    showLoadingPopup('Generating your personalized diet plan...');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -626,39 +552,56 @@ async function generateDietPlan() {
       })
     });
 
-    if (!response.ok) {
-      throw new Error(`API request failed with status ${response.status}`);
-    }
-
     const data = await response.json();
-    const dietPlan = JSON.parse(data.choices[0].message.content);
-    
-    // Show saving state
-    popup.querySelector('p').textContent = loadingStates[3];
-    
-    // Save to Firebase
-    const user = firebase.auth().currentUser;
-    if (!user) {
-      throw new Error('User not authenticated');
+    if (!data.choices || !data.choices[0]) {
+      throw new Error('Invalid response from OpenAI');
     }
 
-    await db.collection('dietPlans').doc(user.uid).set({
+    const dietPlan = data.choices[0].message.content;
+    
+    // Save diet plan to Firestore
+    const dietDoc = await db.collection('diets').add({
+      userId: firebase.auth().currentUser.uid,
       plan: dietPlan,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      responses: userResponses
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp(),
+      mealsLogged: 0,
+      responses: userResponses,
+      dailyCalories: extractDailyCalories(dietPlan),
+      macros: extractMacros(dietPlan)
     });
 
-    // Remove loading popup
-    popup.remove();
-
-    // Redirect to diet-home
-    window.location.replace('../diet-home/index.html');
-
+    // Redirect to diet dashboard
+    window.location.href = '../diet-home/index.html';
   } catch (error) {
     console.error('Error generating diet plan:', error);
-    popup.remove();
-    updateStatus('Error generating diet plan. Please try again.');
+    showError('Failed to generate diet plan. Please try again.');
+  } finally {
+    hideLoadingPopup();
   }
+}
+
+// Helper function to extract daily calories from diet plan
+function extractDailyCalories(dietPlan) {
+  const calorieMatch = dietPlan.match(/(\d{1,4})\s*(?:to\s*\d{1,4}\s*)?calories/i);
+  return calorieMatch ? parseInt(calorieMatch[1]) : 2000;
+}
+
+// Helper function to extract macros from diet plan
+function extractMacros(dietPlan) {
+  const defaultMacros = { protein: 30, carbs: 40, fat: 30 };
+  
+  const macroMatches = {
+    protein: dietPlan.match(/protein:\s*(\d{1,3})%/i),
+    carbs: dietPlan.match(/carb(?:ohydrate)?s:\s*(\d{1,3})%/i),
+    fat: dietPlan.match(/fat:\s*(\d{1,3})%/i)
+  };
+
+  return {
+    protein: macroMatches.protein ? parseInt(macroMatches.protein[1]) : defaultMacros.protein,
+    carbs: macroMatches.carbs ? parseInt(macroMatches.carbs[1]) : defaultMacros.carbs,
+    fat: macroMatches.fat ? parseInt(macroMatches.fat[1]) : defaultMacros.fat
+  };
 }
 
 // Function to process audio response using Whisper API
@@ -885,312 +828,4 @@ document.addEventListener('DOMContentLoaded', () => {
 const link = document.createElement('link');
 link.rel = 'icon';
 link.href = 'data:;base64,iVBORw0KGgo='; // Empty favicon
-document.head.appendChild(link);
-
-// Update diet overview section
-function updateDietOverview() {
-  document.getElementById('dailyCalories').textContent = currentDiet.dailyCalories || '2000';
-  document.getElementById('progressValue').textContent = calculateProgress() + '%';
-  document.getElementById('mealsLogged').textContent = currentDiet.mealsLogged || '0';
-}
-
-// Calculate progress based on logged meals and goals
-function calculateProgress() {
-  if (!currentDiet || !currentDiet.mealsLogged) return 0;
-  const totalMealsPerDay = 3;
-  const daysActive = Math.ceil((Date.now() - currentDiet.createdAt.toDate()) / (1000 * 60 * 60 * 24));
-  const expectedMeals = daysActive * totalMealsPerDay;
-  return Math.min(Math.round((currentDiet.mealsLogged / expectedMeals) * 100), 100);
-}
-
-// Meal type selection
-const mealTypeButtons = document.querySelectorAll('.meal-type-btn');
-let selectedMealType = 'breakfast';
-
-mealTypeButtons.forEach(button => {
-  button.addEventListener('click', () => {
-    mealTypeButtons.forEach(btn => btn.classList.remove('active'));
-    button.classList.add('active');
-    selectedMealType = button.dataset.mealType;
-  });
-});
-
-// Log meal functionality
-const logMealBtn = document.getElementById('logMealBtn');
-const mealInput = document.getElementById('mealInput');
-
-logMealBtn.addEventListener('click', async () => {
-  if (!mealInput.value.trim()) return;
-
-  try {
-    await logMeal({
-      type: selectedMealType,
-      description: mealInput.value.trim(),
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    mealInput.value = '';
-    showSuccess('Meal logged successfully');
-  } catch (error) {
-    console.error('Error logging meal:', error);
-    showError('Failed to log meal');
-  }
-});
-
-// Log meal to Firestore
-async function logMeal(mealData) {
-  const mealRef = db.collection('meals').doc();
-  const dietRef = db.collection('diets').doc(currentDiet.id);
-
-  await db.runTransaction(async (transaction) => {
-    // Add meal
-    transaction.set(mealRef, {
-      ...mealData,
-      userId: currentUser.uid,
-      dietId: currentDiet.id
-    });
-
-    // Update diet stats
-    transaction.update(dietRef, {
-      mealsLogged: firebase.firestore.FieldValue.increment(1)
-    });
-  });
-
-  await loadMealHistory();
-  updateDietOverview();
-}
-
-// Load meal history
-async function loadMealHistory() {
-  try {
-    const mealsSnapshot = await db.collection('meals')
-      .where('userId', '==', currentUser.uid)
-      .where('dietId', '==', currentDiet.id)
-      .orderBy('timestamp', 'desc')
-      .limit(10)
-      .get();
-
-    const historyContainer = document.getElementById('mealHistory');
-    historyContainer.innerHTML = '';
-
-    mealsSnapshot.forEach(doc => {
-      const meal = doc.data();
-      const mealElement = createMealHistoryElement(meal);
-      historyContainer.appendChild(mealElement);
-    });
-  } catch (error) {
-    console.error('Error loading meal history:', error);
-    showError('Failed to load meal history');
-  }
-}
-
-// Create meal history element
-function createMealHistoryElement(meal) {
-  const div = document.createElement('div');
-  div.className = 'meal-history-item';
-  
-  const timestamp = meal.timestamp?.toDate() || new Date();
-  const timeString = timestamp.toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
-    minute: '2-digit',
-    hour12: true 
-  });
-  const dateString = timestamp.toLocaleDateString('en-US', { 
-    month: 'short', 
-    day: 'numeric' 
-  });
-
-  div.innerHTML = `
-    <div class="meal-info">
-      <span class="meal-type">${meal.type}</span>
-      <span class="meal-time">${timeString} - ${dateString}</span>
-    </div>
-    <p class="meal-description">${meal.description}</p>
-  `;
-
-  return div;
-}
-
-// Initialize charts
-function initializeCharts() {
-  initializeMacrosChart();
-  initializeProgressChart();
-}
-
-// Initialize macros chart
-function initializeMacrosChart() {
-  const ctx = document.getElementById('macrosChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Protein', 'Carbs', 'Fat'],
-      datasets: [{
-        data: [30, 50, 20],
-        backgroundColor: [
-          'rgba(0, 123, 255, 0.8)',
-          'rgba(40, 167, 69, 0.8)',
-          'rgba(255, 193, 7, 0.8)'
-        ]
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        }
-      }
-    }
-  });
-}
-
-// Initialize progress chart
-function initializeProgressChart() {
-  const ctx = document.getElementById('progressChart').getContext('2d');
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [{
-        label: 'Calories',
-        data: [2100, 1950, 2200, 2000, 2300, 1800, 2100],
-        borderColor: 'rgba(0, 123, 255, 0.8)',
-        tension: 0.4,
-        fill: false
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          display: false
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true
-        }
-      }
-    }
-  });
-}
-
-// Handle meal image upload
-const uploadImageBtn = document.getElementById('uploadImageBtn');
-const mealImageInput = document.getElementById('mealImage');
-
-uploadImageBtn.addEventListener('click', () => {
-  mealImageInput.click();
-});
-
-mealImageInput.addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  try {
-    showLoading('Analyzing your meal...');
-    
-    // Upload image to Firebase Storage
-    const storageRef = storage.ref(`meal-images/${currentUser.uid}/${Date.now()}_${file.name}`);
-    await storageRef.put(file);
-    const imageUrl = await storageRef.getDownloadURL();
-
-    // Call LogMeal AI API for analysis
-    const analysis = await analyzeMealImage(imageUrl);
-    
-    // Display analysis results
-    displayMealAnalysis(analysis);
-    hideLoading();
-  } catch (error) {
-    console.error('Error analyzing meal:', error);
-    showError('Failed to analyze meal image');
-    hideLoading();
-  }
-});
-
-// Analyze meal image using LogMeal AI
-async function analyzeMealImage(imageUrl) {
-  // TODO: Implement LogMeal AI API integration
-  // This is a placeholder that returns mock data
-  return {
-    foodItems: ['Grilled Chicken', 'Brown Rice', 'Steamed Broccoli'],
-    calories: 450,
-    macros: {
-      protein: 35,
-      carbs: 45,
-      fat: 15
-    },
-    suitability: 0.85
-  };
-}
-
-// Display meal analysis results
-function displayMealAnalysis(analysis) {
-  const analysisContainer = document.getElementById('mealAnalysis');
-  
-  const suitabilityColor = analysis.suitability > 0.7 ? 'var(--success-color)' : 
-                          analysis.suitability > 0.4 ? 'var(--warning-color)' : 
-                          'var(--danger-color)';
-
-  analysisContainer.innerHTML = `
-    <div class="analysis-results">
-      <div class="analysis-header">
-        <h3>Detected Foods</h3>
-        <span class="suitability-score" style="color: ${suitabilityColor}">
-          ${Math.round(analysis.suitability * 100)}% Diet Match
-        </span>
-      </div>
-      <ul class="detected-foods">
-        ${analysis.foodItems.map(food => `<li>${food}</li>`).join('')}
-      </ul>
-      <div class="nutrition-info">
-        <div class="calories">
-          <span class="label">Calories</span>
-          <span class="value">${analysis.calories}</span>
-        </div>
-        <div class="macros">
-          <div class="macro">
-            <span class="label">Protein</span>
-            <span class="value">${analysis.macros.protein}g</span>
-          </div>
-          <div class="macro">
-            <span class="label">Carbs</span>
-            <span class="value">${analysis.macros.carbs}g</span>
-          </div>
-          <div class="macro">
-            <span class="label">Fat</span>
-            <span class="value">${analysis.macros.fat}g</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-// UI Helpers
-function showLoading(message) {
-  const overlay = document.getElementById('loadingOverlay');
-  const loadingMessage = document.getElementById('loadingMessage');
-  loadingMessage.textContent = message;
-  overlay.classList.remove('hidden');
-}
-
-function hideLoading() {
-  const overlay = document.getElementById('loadingOverlay');
-  overlay.classList.add('hidden');
-}
-
-function showError(message) {
-  // TODO: Implement error toast notification
-  console.error(message);
-}
-
-function showSuccess(message) {
-  // TODO: Implement success toast notification
-  console.log(message);
-}
-
-// Initialize the application when the document is ready
-document.addEventListener('DOMContentLoaded', initializeApp); 
+document.head.appendChild(link); 

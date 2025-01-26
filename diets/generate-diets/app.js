@@ -519,18 +519,32 @@ Lifestyle and Daily Schedule:
 ${userResponses.lifestyle}
 
 Please provide a detailed diet plan that includes:
-1. Daily caloric needs and macronutrient breakdown
+1. Daily caloric needs and precise macronutrient breakdown (protein, carbs, fat percentages)
 2. Meal timing recommendations based on their schedule
-3. Specific food suggestions for each meal
-4. Portion control guidelines
-5. Healthy snack options
-6. Tips for meal prep and planning
-7. Strategies for dining out while maintaining the diet
-8. Progress tracking metrics
-9. Potential challenges and solutions
-10. Weekly meal plan template
+3. Specific food suggestions for each meal with portion sizes in grams
+4. Weekly meal plan template with alternatives
+5. Approved food list categorized by:
+   - Proteins
+   - Carbohydrates
+   - Healthy Fats
+   - Vegetables
+   - Fruits
+   - Snacks
+6. Foods to avoid or limit
+7. Meal prep guidelines
+8. Progress tracking metrics:
+   - Weekly weigh-in targets
+   - Body measurements
+   - Progress photos schedule
+   - Energy levels
+9. Specific goals:
+   - Short term (2 weeks)
+   - Medium term (6 weeks)
+   - Long term (12 weeks)
+10. Supplement recommendations if needed
 
-Format the response in clear sections using markdown.`;
+Format the response in clear sections using markdown with specific headings for each category.
+Include specific portion sizes and measurements for accurate tracking.`;
 
   try {
     showLoadingPopup('Generating your personalized diet plan...');
