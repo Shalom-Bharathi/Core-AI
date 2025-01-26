@@ -15,4 +15,4 @@ if (!firebase.apps.length) {
 }
 
 // Export the firestore instance
-const db = firebase.firestore(); 
+ 
